@@ -4,13 +4,69 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>一阶 RC 低通 · EasyAnalog</title>
 <style>
-:root{color-scheme:light;--ink:#182628;--muted:#58686c;--line:#cfdbd9;--teal:#006d67;--blue:#395ab1;font:16px/1.55 "Inter","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:#f1f5f3}
-*{box-sizing:border-box}body{margin:0}header{border-bottom:1px solid var(--line);background:white}header div,main{max-width:1090px;margin:auto;padding:17px 24px}header div{display:flex;gap:12px;align-items:center;font-weight:750;letter-spacing:.01em}header svg{background:var(--teal);border-radius:8px;padding:5px}main{padding-top:28px}h1{font-size:clamp(1.6rem,4vw,2.4rem);margin:2px 0 16px}h2{font-size:1.12rem;margin:0 0 10px}.chapter,small,.hint{color:var(--muted)}.chapter{font-size:.9rem}.layout{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,1.8fr);gap:16px}.card{border:1px solid var(--line);background:white;border-radius:14px;padding:20px;margin-bottom:16px}.field{display:grid;grid-template-columns:1fr 120px;gap:12px;align-items:center;margin:12px 0}input,select,button{font:inherit}input,select{width:100%;border:1px solid #adbfbc;border-radius:6px;padding:7px;color:var(--ink);background:white}button{border:1px solid #8fa5a1;background:white;border-radius:7px;padding:7px 14px;cursor:pointer;color:var(--ink)}:focus-visible{outline:3px solid #d88a32;outline-offset:2px}button[aria-pressed=true]{color:white;background:var(--teal);border-color:var(--teal)}.hint{font-size:.9rem;margin:8px 0}.circuit{width:100%;height:146px;color:var(--ink);background:#f5f8f7;border-radius:8px}.probe{cursor:pointer}.probe circle{fill:white;stroke:var(--teal);stroke-width:3}.probe[aria-pressed=true] circle{fill:#77e3ce}.probe text{fill:#005c56;font-weight:bold}.readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.readouts div{padding:10px;background:#edf5f2;border-radius:7px}.readouts small,.readouts strong{display:block}.readouts strong{font-variant-numeric:tabular-nums}.chart{width:100%;display:block;min-height:180px}.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.controls select{width:auto}#status{font-size:.9rem;color:var(--muted);min-height:1.6em}.plotHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.plotHead h2{margin:0}.legend{color:var(--teal);font-size:.9rem}details{margin-top:12px}summary{cursor:pointer}pre{white-space:pre-wrap;background:#f5f8f7;padding:10px}footer{color:var(--muted);font-size:.86rem;padding-bottom:15px}a{color:var(--teal)}@media(max-width:700px){.layout{grid-template-columns:1fr;gap:0}header div,main{padding-left:14px;padding-right:14px}.card{padding:15px}.readouts{grid-template-columns:1fr 1fr}.field{margin:8px 0}}
-.case-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px}.case-picker select{width:auto;max-width:100%}.circuit{height:180px}
+:root {
+ color-scheme:light; --ink:#182628; --muted:#536769; --line:#cddbd7; --teal:#006d67; --blue:#395ab1;
+ font:16px/1.5 "Inter","Microsoft YaHei",system-ui,sans-serif; color:var(--ink); background:#f1f5f3;
+}
+*{box-sizing:border-box} [hidden]{display:none!important} body{margin:0}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;background:white;border-bottom:1px solid var(--line);padding:8px var(--gutter)}
+body{--gutter:clamp(12px,1.4vw,26px)}
+.brand,.case-picker,.controls,.result-head,.probe-head,.plotHead,.intro{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-weight:750;letter-spacing:.01em}.brand svg{background:var(--teal);border-radius:8px;padding:5px}
+main{padding:14px var(--gutter)}h1,h2,p{margin:0}h1{font-size:clamp(1.5rem,2.2vw,2rem);line-height:1.25}h2{font-size:1.08rem}
+.intro{gap:8px 16px}.chapter,small,.hint,#caseHint,#status,footer{color:var(--muted)}
+.chapter,.hint,#caseHint,#status{font-size:.9rem}#caseHint{margin:4px 0 12px}
+.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:12px}
+.card{min-width:0;border:1px solid var(--line);background:white;border-radius:12px;padding:clamp(12px,1vw,18px)}
+.probe-card,.results-card{display:flex;flex-direction:column}
+.result-head,.probe-head,.plotHead{justify-content:space-between}
+.circuit{display:block;width:100%;flex:1 1 auto;height:clamp(225px,34vh,420px);margin:10px 0;color:var(--ink);background:#f5f8f7;border-radius:7px}
+.probe{cursor:pointer}.probe circle{fill:white;stroke:var(--teal);stroke-width:3}.probe[aria-pressed=true] circle{fill:#77e3ce}.probe text{fill:#005c56;font-weight:bold}
+.readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.readouts div{padding:7px 9px;background:#edf5f2;border-radius:6px}
+.readouts small,.readouts strong{display:block}.readouts strong,output,#cursor{font-variant-numeric:tabular-nums}
+.result-tabs{display:flex;gap:2px;padding:3px;border-radius:8px;background:#eaf1ee}
+.result-tabs button{border-color:transparent;background:transparent;border-radius:6px;padding:5px 12px}
+.result-tabs [aria-selected=true]{background:var(--teal);color:white}
+.chart{display:block;width:100%;height:clamp(255px,36vh,450px)}.hint{margin:6px 0}.legend{color:var(--teal)}
+.cursor-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}#timeReadout{display:block}.plotHead{margin-top:8px}
+input,select,button{font:inherit}input,select{min-width:0;border:1px solid #adbfbc;border-radius:6px;padding:5px 8px;color:var(--ink);background:white}
+select{max-width:100%}button{border:1px solid #8fa5a1;background:white;border-radius:7px;padding:5px 12px;cursor:pointer;color:var(--ink)}
+button[aria-pressed=true]{color:white;background:var(--teal);border-color:var(--teal)}:focus-visible{outline:3px solid #cf8029;outline-offset:2px}
+.settings{display:grid;grid-column:1/-1;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:12px}
+#params{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 12px;margin:8px 0}
+.field{display:grid;gap:4px;font-size:.9rem}.field input{width:100%}#engine{margin-top:6px}#status{margin:6px 0}
+summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f8f7;padding:10px}footer{font-size:.85rem;margin-top:12px}a{color:var(--teal)}
+@media(max-width:900px){
+ .layout,.settings{grid-template-columns:minmax(0,1fr)}.circuit{height:clamp(205px,38vw,330px)}.chart{height:clamp(235px,42vw,330px)}
+}
+@media(max-width:540px){
+ header{flex-wrap:wrap;gap:6px}.case-picker{gap:5px;flex:1;justify-content:flex-end;font-size:.86rem}.case-picker select{width:min(47vw,240px)}
+ main{padding-top:10px}.layout,.settings{gap:8px}.card{padding:10px}.readouts div{padding:6px}.readouts small{font-size:.76rem}
+ .result-tabs button{padding:5px 8px}.controls{gap:4px}.probe-head select{max-width:55vw}.chart{height:250px}
+}
 </style></head><body>
-<header><div><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="white" stroke-width="2" d="M1 13h4l3-8 5 15 4-10 2 3h4"/></svg>EasyAnalog</div></header>
-<main><label class="case-picker">切换电路 <select id="case"></select></label><div class="chapter">第6章 · 放大器的频率响应</div><h1>一阶 RC 低通</h1><p id="caseHint"></p>
-<div class="layout"><section><div class="card"><h2>电路参数</h2>
+<header><div class="brand"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="white" stroke-width="2" d="M1 13h4l3-8 5 15 4-10 2 3h4"/></svg>EasyAnalog</div><label class="case-picker">切换电路 <select id="case"></select></label></header>
+<main><div class="intro"><h1>一阶 RC 低通</h1><span class="chapter">第6章 · 放大器的频率响应</span></div><p id="caseHint"></p>
+<div class="layout">
+<section class="card probe-card"><div class="probe-head"><h2>电路与探针</h2><div class="controls"><label for="probe">探针</label><select id="probe"><option value="out">Vout · 输出电压</option><option value="in">Vin · 输入电压</option><option value="i">I(R) · Vin → Vout</option><option value="gnd">GND · 地电压</option></select></div></div>
+<svg class="circuit" viewBox="0 0 450 165" role="group" aria-label="电路与可选探针"></svg>
+<div class="readouts"><div><small>直流工作点</small><strong id="op">—</strong></div><div><small>指定频率 · 峰值</small><strong id="ac">—</strong></div><div><small>指定频率 · 相位</small><strong id="angle">—</strong></div></div></section>
+<section class="card results-card" id="waveform">
+<div class="result-head"><h2 id="results-heading">仿真结果</h2>
+<div class="result-tabs" role="tablist" aria-labelledby="results-heading">
+<button type="button" role="tab" id="time-tab" aria-controls="time-panel" aria-selected="true">时域波形</button>
+<button type="button" role="tab" id="freq-tab" aria-controls="freq-panel" aria-selected="false" tabindex="-1">频率响应</button>
+</div></div>
+<div id="time-panel" role="tabpanel" aria-labelledby="time-tab">
+<p class="hint"><span style="color:var(--blue)">┄ Vin 输入</span>　<span class="legend">━ Vout 输出</span>　正弦输入的前 3 个周期</p>
+<svg id="timeChart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输入与输出电压随时间变化的波形"></svg>
+<div class="cursor-row"><label for="timeSlider">时间游标</label><input id="timeSlider" type="range" min="0" max="600" value="100" disabled style="padding:0;accent-color:var(--teal)">
+</div><output id="timeReadout" for="timeSlider">—</output>
+</div>
+<div role="tabpanel" id="freq-panel" aria-labelledby="freq-tab" hidden><div class="plotHead"><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div><p class="hint"><span class="legend">● Vout / Vin</span>　 <span id="freqCaption">截止频率</span> <strong id="fc">—</strong></p></div>
+<svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输出与输入的幅频或相频响应"></svg><p class="hint" id="cursor"></p>
+</div></section>
+<section class="settings" aria-label="仿真设置"><div class="card"><h2>电路参数</h2>
 <form id="params">
 <label class="field"><span id="rLabel">电阻 R（kΩ）</span><input id="r" type="number" value="1" min="0.01" max="100" step="any" required></label>
 <label class="field"><span id="cLabel">电容 C（µF）</span><input id="c" type="number" value="1" min="0.01" max="100" step="any" required></label>
@@ -20,18 +76,7 @@
 <label class="field" id="supplyField" style="display:none">电源 VDD（V）<input id="supply" type="number" value="5" min="1" max="10" step="any" required disabled></label>
 </form><button type="button" id="cutoff">将探测频率设为截止频率</button>
 </div><div class="card"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select><p class="hint" id="modelNote" hidden>教学模型：长沟道 NMOS，阈值 0.7 V，体端接地。CL 为外接负载电容。</p><p id="status" role="status"></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></div></section>
-<section><div class="card"><h2>电路与探针</h2><svg class="circuit" viewBox="0 0 450 165" role="group" aria-label="电路与可选探针"></svg><div class="controls" style="margin:10px 0"><label for="probe">探针</label><select id="probe"><option value="out">Vout · 输出电压</option><option value="in">Vin · 输入电压</option><option value="i">I(R) · Vin → Vout</option><option value="gnd">GND · 地电压</option></select></div>
-<div class="readouts"><div><small>直流工作点</small><strong id="op">—</strong></div><div><small>指定频率 · 峰值</small><strong id="ac">—</strong></div><div><small>指定频率 · 相位</small><strong id="angle">—</strong></div></div></div>
-<div class="card" id="waveform">
-<h2>电压随时间变化</h2>
-<p class="hint"><span style="color:var(--blue)">┄ Vin 输入</span>　<span class="legend">━ Vout 输出</span>　正弦输入的前 3 个周期</p>
-<svg id="timeChart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输入与输出电压随时间变化的波形"></svg>
-<label for="timeSlider">时间游标</label><input id="timeSlider" type="range" min="0" max="600" value="100" disabled style="padding:0;accent-color:var(--teal)">
-<output id="timeReadout" for="timeSlider">—</output>
 </div>
-<div class="card"><div class="plotHead"><h2>输出频率响应</h2><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div></div><p class="hint"><span class="legend">● Vout / Vin</span>　 <span id="freqCaption">截止频率</span> <strong id="fc">—</strong></p>
-<svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输出与输入的幅频或相频响应"></svg><p class="hint" id="cursor"></p>
-</div></section></div>
 <footer>仿真内核使用 <a href="https://github.com/eelab-dev/EEcircuit-engine">EEcircuit-engine / ngspice</a>。解析解适用于图示理想 RC 电路。</footer></main>
 <script src="./circuits.js"></script>
 <script id="solver" type="text/plain">
@@ -102,12 +147,19 @@ function exact(p){
  });
  return {wave,points:Array.from({length:97},(_,i)=>{const f=p.lo*10**(i/24),x=f/p.fc;return high?[f,-10*Math.log10(1+1/(x*x)),Math.atan(1/x)*180/Math.PI]:[f,-10*Math.log10(1+x*x),-Math.atan(x)*180/Math.PI]}),volt:[{real:p.amp,img:0},voltage(p.f)],dc:[p.dc,high?0:p.dc]};
 }
+function plotFrame(svg){
+ const w=svg.clientWidth,h=svg.clientHeight;
+ svg.setAttribute('viewBox','0 0 '+w+' '+h);
+ const left=w<450?44:58, right=w-(w<450?28:36), top=19, bottom=h-43;
+ return {left,right,width:right-left,top,bottom,height:bottom-top};
+}
 function drawWave(){
  const chart=$('timeChart'),slider=$('timeSlider'),output=$('timeReadout');
  slider.disabled=!result;
  if(!result){chart.replaceChildren();output.textContent='—';return}
  const p=settings,wave=result.wave;
- const left=66,width=516,top=24,height=160;
+ if($('time-panel').hidden)return;
+ const {left,width,top,height,bottom}=plotFrame(chart);
  const x=t=>left+width*t/p.duration;
  const low=Math.min(p.dc-p.amp,...wave.map(row=>row[2]));
  const high=Math.max(p.dc+p.amp,...wave.map(row=>row[2]));
@@ -122,9 +174,9 @@ function drawWave(){
  }
  for(let k=0;k<=3;k++){
   const t=k/p.f;
-  parts.push(line(x(t),top,x(t),top+height),text(x(t),208,number(t*unit[0],4),'middle'));
+  parts.push(line(x(t),top,x(t),top+height),text(x(t),bottom+20,number(t*unit[0],4),'middle'));
  }
- parts.push(text(left+width,232,'时间 ('+unit[1]+')','end'));
+ parts.push(text(left+width,bottom+39,'时间 ('+unit[1]+')','end'));
  function traceLine(index,style){
   const points=wave.map(row=>x(row[0]).toFixed(2)+','+y(row[index]).toFixed(2)).join(' ');
   return '<polyline fill="none" '+style+' points="'+points+'"/>';
@@ -159,20 +211,22 @@ function draw(){
   unit='mA';
  }
  $('op').textContent=number(bias)+' '+unit;$('ac').textContent=number(Math.hypot(v.real,v.img),4)+' '+unit;$('angle').textContent=Math.hypot(v.real,v.img)>0?number(Math.atan2(v.img,v.real)*180/Math.PI,4)+'°':'—';
+ if($('freq-panel').hidden)return;
+ const frame=plotFrame($('chart'));
  const phase=mode==='phase',index=phase?2:1;
  const values=result.points.map(row=>row[index]),stride=phase?30:10;
  const bottom=Math.floor(Math.min(0,...values)/stride)*stride;
  const top=Math.max(bottom+stride,Math.ceil(Math.max(0,...values)/stride)*stride);
- const x=f=>65+Math.log10(f/p.lo)*130,y=a=>25+(top-a)/(top-bottom)*166;
+ const x=f=>frame.left+Math.log10(f/p.lo)*frame.width/4,y=a=>frame.top+(top-a)/(top-bottom)*frame.height;
  const parts=[],svg=$('chart');
  function line(x1,y1,x2,y2,color,dash=''){parts.push('<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-dasharray="'+dash+'"/>')}
  function label(x,y,s,anchor='middle'){parts.push('<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" fill="#536566" font-size="13">'+s+'</text>')}
- for(let tick=bottom;tick<=top;tick+=stride){line(65,y(tick),585,y(tick),'#d9e3e0');label(55,y(tick)+4,tick,'end')}
- for(let i=0;i<5;i++){let f=p.lo*10**i;line(x(f),25,x(f),191,'#d9e3e0');label(x(f),213,freqLabel(f))}
+ for(let tick=bottom;tick<=top;tick+=stride){line(frame.left,y(tick),frame.right,y(tick),'#d9e3e0');label(frame.left-8,y(tick)+4,tick,'end')}
+ for(let i=0;i<5;i++){let f=p.lo*10**i;line(x(f),frame.top,x(f),frame.bottom,'#d9e3e0');label(x(f),frame.bottom+20,freqLabel(f))}
  label(16,16,phase?'°':'dB','start');
  parts.push('<polyline fill="none" stroke="#006d67" stroke-width="3" points="'+result.points.map(a=>x(a[0])+','+y(a[phase?2:1])).join(' ')+'"/>');
  const gain=20*Math.log10(Math.hypot(vout.real,vout.img)/Math.hypot(vin.real,vin.img)),deg=(Math.atan2(vout.img,vout.real)-Math.atan2(vin.img,vin.real))*180/Math.PI;
- if(Number.isFinite(gain)&&p.f>=p.lo&&p.f<=p.hi){line(x(p.f),25,x(p.f),191,'#395ab1','4 4');parts.push('<circle cx="'+x(p.f)+'" cy="'+y(phase?deg:gain)+'" r="5" fill="#395ab1"/>')}
+ if(Number.isFinite(gain)&&p.f>=p.lo&&p.f<=p.hi){line(x(p.f),frame.top,x(p.f),frame.bottom,'#395ab1','4 4');parts.push('<circle cx="'+x(p.f)+'" cy="'+y(phase?deg:gain)+'" r="5" fill="#395ab1"/>')}
  svg.innerHTML=parts.join('');
  $('cursor').textContent=Number.isFinite(gain)?freqLabel(p.f)+'　'+number(gain,5)+' dB　'+number(deg,5)+'°':freqLabel(p.f)+'　小信号输出为零';
 }
@@ -200,6 +254,29 @@ controls.addEventListener('input',update);controls.onsubmit=e=>e.preventDefault(
 $('cutoff').onclick=()=>{if(read()){$('f').value=Number(read().fc.toPrecision(9));update()}};
 function wireProbes(){document.querySelectorAll('[data-probe]').forEach(el=>{el.onclick=()=>{$('probe').value=el.dataset.probe;draw()};el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();el.onclick()}}});}
 document.querySelectorAll('[data-mode]').forEach(el=>el.onclick=()=>{mode=el.dataset.mode;draw()});
+const resultTabs=Array.from(document.querySelectorAll('.result-tabs [role=tab]'));
+function selectResultTab(tab){
+ for(const item of resultTabs){
+  const selected=item===tab;
+  item.setAttribute('aria-selected',String(selected));
+  item.tabIndex=selected?0:-1;
+  $(item.getAttribute('aria-controls')).hidden=!selected;
+ }
+ draw();
+}
+for(const tab of resultTabs){
+ tab.onclick=()=>selectResultTab(tab);
+ tab.onkeydown=event=>{
+  const index={Home:0,End:1,ArrowLeft:1-resultTabs.indexOf(tab),ArrowRight:1-resultTabs.indexOf(tab)}[event.key];
+  if(index===undefined)return;
+  event.preventDefault();
+  resultTabs[index].focus();
+  selectResultTab(resultTabs[index]);
+ };
+}
+const plotResize=new ResizeObserver(()=>draw());
+plotResize.observe($('timeChart'));
+plotResize.observe($('chart'));
 let active;
 const caseSelect=$('case');
 for(const [id,entry] of Object.entries(caseBook))caseSelect.add(new Option(entry.name,id));
@@ -227,7 +304,9 @@ function selectCase(){
  const probes=[['out','Vout · 输出电压'],['in','Vin · 输入电压'],['i',active.currentLabel],['gnd','GND · 地电压']];
  if(active.mos)probes.push(['vdd','VDD · 电源电压']);
  $('probe').replaceChildren(...probes.map(([key,name])=>new Option(name,key)));
- document.querySelector('.circuit').innerHTML=schematic(id);
+ const circuit=document.querySelector('.circuit');
+ circuit.setAttribute('viewBox',active.mos?'76 -12 305 182':'42 4 324 154');
+ circuit.innerHTML=schematic(id);
  wireProbes();
  $('timeSlider').value=100;
  update();

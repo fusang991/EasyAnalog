@@ -15,6 +15,13 @@ const { chromium } = require('playwright');
     assert(Math.abs(await read('#op') - 1) < 0.001);
     assert(Math.abs(await read('#ac') - Math.SQRT1_2) < 0.0002);
     assert(Math.abs(await read('#angle') + 45) < 0.03);
+    const timeTab = page.getByRole('tab', { name: '时域波形' });
+    const freqTab = page.getByRole('tab', { name: '频率响应' });
+    assert.equal(await page.getByRole('tabpanel').count(), 1);
+    assert.equal(await timeTab.getAttribute('aria-selected'), 'true');
+    await freqTab.click();
+    assert.equal(await page.locator('#timeChart').isVisible(), false);
+    assert.equal(await page.locator('#chart').isVisible(), true);
     console.log('ngspice cutoff cursor:', await page.locator('#cursor').textContent());
     await page.locator('#probe').selectOption('i');
     assert(Math.abs(await read('#ac') - Math.SQRT1_2) < 0.0002);
@@ -27,6 +34,10 @@ const { chromium } = require('playwright');
     await page.locator('[data-mode=phase]').click();
     assert.equal(await page.locator('[data-mode=phase]').getAttribute('aria-pressed'), 'true');
     console.log('R = 2 kΩ:', await page.locator('#ac').textContent(), await page.locator('#cursor').textContent());
+    await freqTab.focus();
+    await freqTab.press('ArrowLeft');
+    assert.equal(await timeTab.getAttribute('aria-selected'), 'true');
+    assert.equal(await page.getByRole('tabpanel').count(), 1);
     async function checkWave() {
       const stats = await page.evaluate(() => {
         const {amp, dc, f, fc, R, C, duration} = settings;
