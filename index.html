@@ -16,12 +16,13 @@ body{--gutter:clamp(12px,1.4vw,26px)}
 main{padding:14px var(--gutter)}h1,h2,p{margin:0}h1{font-size:clamp(1.5rem,2.2vw,2rem);line-height:1.25}h2{font-size:1.08rem}
 .intro{gap:8px 16px}.chapter,small,.hint,#caseHint,#status,footer{color:var(--muted)}
 .chapter,.hint,#caseHint,#status{font-size:.9rem}#caseHint{margin:4px 0 12px}
-.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:12px}
+.layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .card{min-width:0;border:1px solid var(--line);background:white;border-radius:12px;padding:clamp(12px,1vw,18px)}
 .probe-card,.results-card{display:flex;flex-direction:column}
 .result-head,.probe-head,.plotHead{justify-content:space-between}
 .circuit{display:block;width:100%;flex:1 1 auto;height:clamp(225px,34vh,420px);margin:10px 0;color:var(--ink);background:#f5f8f7;border-radius:7px}
 .probe{cursor:pointer}.probe circle{fill:white;stroke:var(--teal);stroke-width:3}.probe[aria-pressed=true] circle{fill:#77e3ce}.probe text{fill:#005c56;font-weight:bold}
+.probe[data-probe=vdd][aria-pressed=true] circle{fill:white;stroke-width:4;stroke:var(--blue)}
 .readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.readouts div{padding:7px 9px;background:#edf5f2;border-radius:6px}
 .readouts small,.readouts strong{display:block}.readouts strong,output,#cursor{font-variant-numeric:tabular-nums}
 .result-tabs{display:flex;gap:2px;padding:3px;border-radius:8px;background:#eaf1ee}
@@ -305,7 +306,7 @@ function selectCase(){
  if(active.mos)probes.push(['vdd','VDD · 电源电压']);
  $('probe').replaceChildren(...probes.map(([key,name])=>new Option(name,key)));
  const circuit=document.querySelector('.circuit');
- circuit.setAttribute('viewBox',active.mos?'76 -12 305 182':'42 4 324 154');
+ circuit.setAttribute('viewBox',active.mos?'76 -32 305 202':'42 4 324 154');
  circuit.innerHTML=schematic(id);
  wireProbes();
  $('timeSlider').value=100;

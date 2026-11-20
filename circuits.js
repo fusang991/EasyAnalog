@@ -37,8 +37,11 @@ const mosModel = '.model NM NMOS (LEVEL=1 VTO=0.7 KP=100u LAMBDA=0 GAMMA=0)';
 
 function schematic(id) {
   const path = d => '<path d="'+d+'" stroke="currentColor" stroke-width="2.4" fill="none"/>';
-  const label = (x,y,s) => '<text x="'+x+'" y="'+y+'" fill="currentColor" font-size="15">'+s+'</text>';
-  const probe = (x,y,node,name) => '<g class="probe" data-probe="'+node+'" tabindex="0" role="button" aria-label="测量 '+name+'"><circle cx="'+x+'" cy="'+y+'" r="6"/>'+label(x+10,y-8,name)+'</g>';
+  const label = (x,y,s,anchor='start') => '<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" fill="currentColor" font-size="15">'+s+'</text>';
+  const probe = (x,y,node,name) => {
+    const caption = node==='vdd' ? label(x,y-12,name,'middle') : label(x+10,y-8,name);
+    return '<g class="probe" data-probe="'+node+'" tabindex="0" role="button" aria-label="测量 '+name+'"><circle cx="'+x+'" cy="'+y+'" r="6"/>'+caption+'</g>';
+  };
   const ground = (x,y) => path('M'+x+' '+y+'v5m-12 0h24m-19 5h14m-10 5h6');
   const source = (x,y) => '<circle cx="'+x+'" cy="'+y+'" r="16" fill="none" stroke="currentColor" stroke-width="2"/>'+path('M'+(x-9)+' '+y+'q4-10 9 0t9 0');
   const resistor = (x,y) => path('M'+x+' '+y+'v5l-5 3 10 5-10 5 10 5-10 5 5 3v5');
@@ -54,9 +57,9 @@ function schematic(id) {
   const top = cs ? resistor(235,18)+path('M235 54v20') : path('M235 18v56');
   const bottom = cs ? path('M235 106v37') : path('M235 106v3')+resistor(235,109);
   const outputY = cs?60:107;
-  return top+bottom+ground(235,cs?143:145)+path('M235 74h-20v32h20M208 76v28M107 90h101')
+  return path('M235 6V18')+top+bottom+ground(235,cs?143:145)+path('M235 74h-20v32h20M208 76v28M107 90h101')
     +path('M235 '+outputY+'h92v10')+capacitor(327,outputY+10)+ground(327,outputY+36)
     +source(107,110)+path('M107 94v-4m0 36v8')+ground(107,134)
     +label(259,cs?42:140,cs?'RD':'RS')+label(347,outputY+27,'CL')+label(224,96,'M1')
-    +probe(235,18,'vdd','VDD')+probe(130,90,'in','Vin')+probe(294,outputY,'out','Vout');
+    +probe(235,0,'vdd','VDD')+probe(130,90,'in','Vin')+probe(294,outputY,'out','Vout');
 }
