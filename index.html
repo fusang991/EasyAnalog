@@ -43,7 +43,7 @@ async function run(p,cmd){
 self.onmessage=async({data:p})=>{
  try{
   if(!simulator){
-   const {Simulation}=await import('https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs');
+   const {Simulation}=await import(p.engineURL);
    simulator=new Simulation();await simulator.start();
   }
   const op=await run(p,'.op');
@@ -107,7 +107,7 @@ function update(){
  busy=true;limit=setTimeout(()=>{if(id===revision)fail()},45000);
  worker.onerror=()=>{if(id===revision)fail()};
  worker.onmessage=({data})=>{if(id!==revision)return;clearTimeout(limit);busy=false;if(data.error||!data.points?.length||!data.points.every(row=>row.every(Number.isFinite))){fail();return}result=data;$('status').textContent='ngspice 已完成工作点与交流扫频计算。';draw()};
- worker.postMessage(p);
+ worker.postMessage({...p,engineURL:new URL('https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs',location.href).href});
  }catch{fail()}
  },180);
 }

@@ -1,0 +1,40 @@
+name: Verify RC demo and publish Pages
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare standalone site with a local simulation engine
+        run: |
+          npm install --no-save --ignore-scripts eecircuit-engine@1.8.0 playwright@1.56.1
+          mkdir -p public/vendor
+          cp -R node_modules/eecircuit-engine/dist/. public/vendor/
+          cp index.html public/
+          sed -i 's|https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs|./vendor/eecircuit-engine.mjs|' public/index.html
+          npx playwright install --with-deps chromium
+      - name: Verify actual browser simulation
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory public >/tmp/easyanalog-server.log 2>&1 &
+          node smoke.cjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: publish
