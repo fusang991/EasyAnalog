@@ -9,13 +9,13 @@
  font:16px/1.5 "Inter","Microsoft YaHei",system-ui,sans-serif; color:var(--ink); background:#f1f5f3;
 }
 *{box-sizing:border-box} [hidden]{display:none!important} body{margin:0}
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;background:white;border-bottom:1px solid var(--line);padding:8px var(--gutter)}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;background:white;border-bottom:1px solid var(--line);padding:4px var(--gutter)}
 body{--gutter:clamp(12px,1.4vw,26px)}
 .brand,.case-picker,.controls,.result-head,.probe-head,.plotHead,.intro{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.brand{font-weight:750;letter-spacing:.01em}.brand svg{background:var(--teal);border-radius:8px;padding:5px}
-main{padding:14px var(--gutter)}h1,h2,p{margin:0}h1{font-size:clamp(1.5rem,2.2vw,2rem);line-height:1.25}h2{font-size:1.08rem}
-.intro{gap:8px 16px}.chapter,small,.hint,#caseHint,#status,footer{color:var(--muted)}
-.chapter,.hint,#caseHint,#status{font-size:.9rem}#caseHint{margin:4px 0 12px}
+.brand{font-size:.9rem;font-weight:750;letter-spacing:.01em}.brand svg{width:24px;height:24px;background:var(--teal);border-radius:8px;padding:5px}
+main{padding:8px var(--gutter)}h1,h2,p{margin:0}h1{font-size:clamp(1.05rem,1.4vw,1.25rem);line-height:1.25}h2{font-size:1.08rem}
+.intro{gap:2px 14px;margin-bottom:8px}.chapter,small,.hint,#caseHint,#status,footer{color:var(--muted)}
+.chapter,.hint,#caseHint,#status{font-size:.9rem}#caseHint{margin:0}
 .layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .card{min-width:0;border:1px solid var(--line);background:white;border-radius:12px;padding:clamp(12px,1vw,18px)}
 .probe-card,.results-card{display:flex;flex-direction:column}
@@ -33,22 +33,37 @@ main{padding:14px var(--gutter)}h1,h2,p{margin:0}h1{font-size:clamp(1.5rem,2.2vw
 input,select,button{font:inherit}input,select{min-width:0;border:1px solid #adbfbc;border-radius:6px;padding:5px 8px;color:var(--ink);background:white}
 select{max-width:100%}button{border:1px solid #8fa5a1;background:white;border-radius:7px;padding:5px 12px;cursor:pointer;color:var(--ink)}
 button[aria-pressed=true]{color:white;background:var(--teal);border-color:var(--teal)}:focus-visible{outline:3px solid #cf8029;outline-offset:2px}
-.settings{display:grid;grid-column:1/-1;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:12px}
-#params{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 12px;margin:8px 0}
-.field{display:grid;gap:4px;font-size:.9rem}.field input{width:100%}#engine{margin-top:6px}#status{margin:6px 0}
+.parameter-card,.engine-card{grid-column:1/-1}
+.parameter-card{padding-block:8px}.parameter-head,.engine-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px}
+.parameter-head{justify-content:space-between}.parameter-head button{font-size:.85rem;padding:2px 8px}
+#params{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px 12px;margin:4px 0 0}
+.field{display:grid;gap:4px;font-size:.9rem}.field input{width:100%}#status{margin:6px 0}
 summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f8f7;padding:10px}footer{font-size:.85rem;margin-top:12px}a{color:var(--teal)}
+@media(min-width:901px){
+ .chart{height:clamp(180px,calc(100dvh - 390px),52vh)}
+ .circuit{height:clamp(180px,calc(100dvh - 395px),51vh)}
+}
 @media(max-width:900px){
- .layout,.settings{grid-template-columns:minmax(0,1fr)}.circuit{height:clamp(205px,38vw,330px)}.chart{height:clamp(235px,42vw,330px)}
+ .layout{grid-template-columns:minmax(0,1fr)}.circuit{height:clamp(205px,38vw,330px)}.chart{height:clamp(235px,42vw,330px)}
 }
 @media(max-width:540px){
  header{flex-wrap:wrap;gap:6px}.case-picker{gap:5px;flex:1;justify-content:flex-end;font-size:.86rem}.case-picker select{width:min(47vw,240px)}
- main{padding-top:10px}.layout,.settings{gap:8px}.card{padding:10px}.readouts div{padding:6px}.readouts small{font-size:.76rem}
+ main{padding-top:10px}.layout{gap:8px}.card{padding:10px}.readouts div{padding:6px}.readouts small{font-size:.76rem}
  .result-tabs button{padding:5px 8px}.controls{gap:4px}.probe-head select{max-width:55vw}.chart{height:250px}
 }
 </style></head><body>
 <header><div class="brand"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="white" stroke-width="2" d="M1 13h4l3-8 5 15 4-10 2 3h4"/></svg>EasyAnalog</div><label class="case-picker">切换电路 <select id="case"></select></label></header>
-<main><div class="intro"><h1>一阶 RC 低通</h1><span class="chapter">第6章 · 放大器的频率响应</span></div><p id="caseHint"></p>
+<main><div class="intro"><h1>一阶 RC 低通</h1><span class="chapter">第6章 · 放大器的频率响应</span><p id="caseHint"></p></div>
 <div class="layout">
+<section class="card parameter-card"><div class="parameter-head"><h2>电路参数</h2><button type="button" id="cutoff">将探测频率设为截止频率</button></div>
+<form id="params">
+<label class="field"><span id="rLabel">电阻 R（kΩ）</span><input id="r" type="number" value="1" min="0.01" max="100" step="any" required></label>
+<label class="field"><span id="cLabel">电容 C（µF）</span><input id="c" type="number" value="1" min="0.01" max="100" step="any" required></label>
+<label class="field">直流偏置（V）<input id="dc" type="number" value="1" min="-20" max="20" step="any" required></label>
+<label class="field">交流峰值（V）<input id="amp" type="number" value="1" min="0.01" max="10" step="any" required></label>
+<label class="field">输入频率（Hz）<input id="f" type="number" value="159.155" min="0.001" max="1e9" step="any" required></label>
+<label class="field" id="supplyField" style="display:none">电源 VDD（V）<input id="supply" type="number" value="5" min="1" max="10" step="any" required disabled></label>
+</form></section>
 <section class="card probe-card"><div class="probe-head"><h2>电路与探针</h2><div class="controls"><label for="probe">探针</label><select id="probe"><option value="out">Vout · 输出电压</option><option value="in">Vin · 输入电压</option><option value="i">I(R) · Vin → Vout</option><option value="gnd">GND · 地电压</option></select></div></div>
 <svg class="circuit" viewBox="0 0 450 165" role="group" aria-label="电路与可选探针"></svg>
 <div class="readouts"><div><small>直流工作点</small><strong id="op">—</strong></div><div><small>指定频率 · 峰值</small><strong id="ac">—</strong></div><div><small>指定频率 · 相位</small><strong id="angle">—</strong></div></div></section>
@@ -67,16 +82,7 @@ summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;backgroun
 <div role="tabpanel" id="freq-panel" aria-labelledby="freq-tab" hidden><div class="plotHead"><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div><p class="hint"><span class="legend">● Vout / Vin</span>　 <span id="freqCaption">截止频率</span> <strong id="fc">—</strong></p></div>
 <svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输出与输入的幅频或相频响应"></svg><p class="hint" id="cursor"></p>
 </div></section>
-<section class="settings" aria-label="仿真设置"><div class="card"><h2>电路参数</h2>
-<form id="params">
-<label class="field"><span id="rLabel">电阻 R（kΩ）</span><input id="r" type="number" value="1" min="0.01" max="100" step="any" required></label>
-<label class="field"><span id="cLabel">电容 C（µF）</span><input id="c" type="number" value="1" min="0.01" max="100" step="any" required></label>
-<label class="field">直流偏置（V）<input id="dc" type="number" value="1" min="-20" max="20" step="any" required></label>
-<label class="field">交流峰值（V）<input id="amp" type="number" value="1" min="0.01" max="10" step="any" required></label>
-<label class="field">输入频率（Hz）<input id="f" type="number" value="159.155" min="0.001" max="1e9" step="any" required></label>
-<label class="field" id="supplyField" style="display:none">电源 VDD（V）<input id="supply" type="number" value="5" min="1" max="10" step="any" required disabled></label>
-</form><button type="button" id="cutoff">将探测频率设为截止频率</button>
-</div><div class="card"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select><p class="hint" id="modelNote" hidden>教学模型：长沟道 NMOS，阈值 0.7 V，体端接地。CL 为外接负载电容。</p><p id="status" role="status"></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></div></section>
+<section class="card engine-card"><div class="engine-head"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select></div><p class="hint" id="modelNote" hidden>教学模型：长沟道 NMOS，阈值 0.7 V，体端接地。CL 为外接负载电容。</p><p id="status" role="status"></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></section>
 </div>
 <footer>仿真内核使用 <a href="https://github.com/eelab-dev/EEcircuit-engine">EEcircuit-engine / ngspice</a>。解析解适用于图示理想 RC 电路。</footer></main>
 <script src="./circuits.js"></script>
