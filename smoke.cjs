@@ -27,6 +27,37 @@ const { chromium } = require('playwright');
     await page.locator('[data-mode=phase]').click();
     assert.equal(await page.locator('[data-mode=phase]').getAttribute('aria-pressed'), 'true');
     console.log('R = 2 kΩ:', await page.locator('#ac').textContent(), await page.locator('#cursor').textContent());
+    async function checkWave() {
+      const stats = await page.evaluate(() => {
+        const {amp, dc, f, fc, R, C, duration} = settings;
+        let maxError = 0;
+        for (const [t, vin, vout] of result.wave) {
+          const angle = 2 * Math.PI * f * t, ratio = f / fc;
+          const expected = dc + amp * (Math.sin(angle) - ratio * Math.cos(angle)
+            + ratio * Math.exp(-t / (R * C))) / (1 + ratio ** 2);
+          maxError = Math.max(maxError, Math.abs(vout - expected), Math.abs(vin - dc - amp * Math.sin(angle)));
+        }
+        return {maxError, duration, start: result.wave[0][0], end: result.wave.at(-1)[0]};
+      });
+      assert.equal(stats.start, 0);
+      assert(Math.abs(stats.end / stats.duration - 1) < 1e-7);
+      assert(stats.maxError < 0.001, 'Waveform deviation: ' + stats.maxError + ' V');
+      assert.equal(await page.locator('#timeChart polyline').count(), 2);
+      console.log('Waveform max error (V):', stats.maxError);
+    }
+    await checkWave();
+    await page.locator('#f').fill('420');
+    await ready();
+    await checkWave();
+    const slider = page.locator('#timeSlider');
+    await slider.focus();
+    await slider.press('Home');
+    assert.match(await page.locator('#timeReadout').textContent(), /t = 0 ms.*Vin = 1 V.*Vout = 1 V/);
+    await slider.press('End');
+    assert.match(await page.locator('#timeReadout').textContent(), /t = 7.1429 ms/);
+    await page.locator('#engine').selectOption('exact');
+    await checkWave();
+
   } finally {
     await browser.close();
   }

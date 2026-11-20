@@ -15,7 +15,7 @@
 <label class="field">电容 C（µF）<input id="c" type="number" value="1" min="0.01" max="100" step="any" required></label>
 <label class="field">直流偏置（V）<input id="dc" type="number" value="1" min="-20" max="20" step="any" required></label>
 <label class="field">交流峰值（V）<input id="amp" type="number" value="1" min="0.01" max="10" step="any" required></label>
-<label class="field">探测频率（Hz）<input id="f" type="number" value="159.155" min="0.001" max="1e9" step="any" required></label>
+<label class="field">输入频率（Hz）<input id="f" type="number" value="159.155" min="0.001" max="1e9" step="any" required></label>
 </form><button type="button" id="cutoff">将探测频率设为截止频率</button>
 </div><div class="card"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select><p id="status" role="status"></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></div></section>
 <section><div class="card"><h2>电路与探针</h2><svg class="circuit" viewBox="0 0 450 150" aria-label="RC 低通电路图">
@@ -24,13 +24,20 @@
 <g class="probe" data-probe="in" tabindex="0" role="button" aria-label="测量 Vin"><circle cx="101" cy="52" r="6"/><text x="82" y="34">Vin</text></g><g class="probe" data-probe="out" tabindex="0" role="button" aria-label="测量 Vout"><circle cx="315" cy="52" r="6"/><text x="295" y="34">Vout</text></g>
 </svg><div class="controls" style="margin:10px 0"><label for="probe">探针</label><select id="probe"><option value="out">Vout · 输出电压</option><option value="in">Vin · 输入电压</option><option value="i">I(R) · Vin → Vout</option><option value="gnd">GND · 地电压</option></select></div>
 <div class="readouts"><div><small>直流工作点</small><strong id="op">—</strong></div><div><small>指定频率 · 峰值</small><strong id="ac">—</strong></div><div><small>指定频率 · 相位</small><strong id="angle">—</strong></div></div></div>
+<div class="card" id="waveform">
+<h2>电压随时间变化</h2>
+<p class="hint"><span style="color:var(--blue)">┄ Vin 输入</span>　<span class="legend">━ Vout 输出</span>　正弦输入的前 3 个周期</p>
+<svg id="timeChart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输入与输出电压随时间变化的波形"></svg>
+<label for="timeSlider">时间游标</label><input id="timeSlider" type="range" min="0" max="600" value="100" disabled style="padding:0;accent-color:var(--teal)">
+<output id="timeReadout" for="timeSlider">—</output>
+</div>
 <div class="card"><div class="plotHead"><h2>输出频率响应</h2><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div></div><p class="hint"><span class="legend">● Vout / Vin</span>　 截止频率 <strong id="fc">—</strong></p>
 <svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="一阶 RC 低通波特图"></svg><p class="hint" id="cursor"></p>
 </div></section></div>
 <footer>仿真内核使用 <a href="https://github.com/eelab-dev/EEcircuit-engine">EEcircuit-engine / ngspice</a>。解析解适用于图示理想 RC 电路。</footer></main>
 <script id="solver" type="text/plain">
 let simulator;
-const circuit=(p,analysis)=>['EasyAnalog RC low-pass','Vin in 0 DC '+p.dc+' AC '+p.amp,'R1 in out '+p.R,'C1 out 0 '+p.C,analysis,'.end'].join('\n');
+const circuit=(p,analysis)=>['EasyAnalog RC low-pass',p.source,'R1 in out '+p.R,'C1 out 0 '+p.C,analysis,'.end'].join('\n');
 function trace(result,name){
  const found=result.data.find(row=>row.name.toLowerCase()===name);
  if(!found)throw new Error('缺少仿真输出 '+name);
@@ -53,7 +60,12 @@ self.onmessage=async({data:p})=>{
   const points=output.map((v,i)=>[freq[i].real,20*Math.log10(Math.hypot(v.real,v.img)/Math.hypot(input[i].real,input[i].img)),(Math.atan2(v.img,v.real)-Math.atan2(input[i].img,input[i].real))*180/Math.PI]);
   const vin=trace(sample,'v(in)')[0],vout=trace(sample,'v(out)')[0];
   const vi=trace(op,'v(in)')[0],vo=trace(op,'v(out)')[0];
-  self.postMessage({points,volt:[vin,vout],dc:[vi,vo]});
+  const transient=await run(p,p.tran);
+  const times=trace(transient,'time');
+  const inputs=trace(transient,'v(in)'),outputs=trace(transient,'v(out)');
+  const wave=times.map((time,i)=>[time,inputs[i],outputs[i]]);
+  if(wave.length && times[0]>0) wave.unshift([0,vi,vo]);
+  self.postMessage({points,volt:[vin,vout],dc:[vi,vo],wave});
  }catch(error){self.postMessage({error:String(error.message||error)});}
 };
 </script>
@@ -66,13 +78,64 @@ function freqLabel(f){return f>=1e6?number(f/1e6)+' MHz':f>=1000?number(f/1000)+
 function read(){
  if(!controls.checkValidity())return null;
  const R=$('r').valueAsNumber*1e3,C=$('c').valueAsNumber*1e-6,f=$('f').valueAsNumber,fc=1/(2*Math.PI*R*C);
- return {R,C,dc:$('dc').valueAsNumber,amp:$('amp').valueAsNumber,f,fc,lo:fc/100,hi:fc*100};
+ const dc=$('dc').valueAsNumber,amp=$('amp').valueAsNumber;
+ const duration=3/f,step=1/(160*f);
+ const source='Vin in 0 DC '+dc+' AC '+amp+' SIN('+dc+' '+amp+' '+f+')';
+ const tran='.tran '+step+' '+duration+' 0 '+step;
+ return {R,C,dc,amp,f,fc,lo:fc/100,hi:fc*100,duration,source,tran};
 }
 function exact(p){
  function voltage(f){const x=f/p.fc;return {real:p.amp/(1+x*x),img:-p.amp*x/(1+x*x)}}
- return {points:Array.from({length:97},(_,i)=>{const f=p.lo*10**(i/24),x=f/p.fc;return [f,-10*Math.log10(1+x*x),-Math.atan(x)*180/Math.PI]}),volt:[{real:p.amp,img:0},voltage(p.f)],dc:[p.dc,p.dc]};
+ const ratio=p.f/p.fc;
+ const wave=Array.from({length:481},(_,i)=>{
+  const t=p.duration*i/480,angle=2*Math.PI*p.f*t;
+  const vin=p.dc+p.amp*Math.sin(angle);
+  // The exponential enforces Vout(0) = DC at the start of the sine wave.
+  const response=(Math.sin(angle)+ratio*(Math.expm1(-t/(p.R*p.C))+2*Math.sin(angle/2)**2))/(1+ratio*ratio);
+  return [t,vin,p.dc+p.amp*response];
+ });
+ return {wave,points:Array.from({length:97},(_,i)=>{const f=p.lo*10**(i/24),x=f/p.fc;return [f,-10*Math.log10(1+x*x),-Math.atan(x)*180/Math.PI]}),volt:[{real:p.amp,img:0},voltage(p.f)],dc:[p.dc,p.dc]};
 }
+function drawWave(){
+ const chart=$('timeChart'),slider=$('timeSlider'),output=$('timeReadout');
+ slider.disabled=!result;
+ if(!result){chart.replaceChildren();output.textContent='—';return}
+ const p=settings,wave=result.wave;
+ const left=66,width=516,top=24,height=160;
+ const x=t=>left+width*t/p.duration;
+ const y=v=>top+height*(1-(v-p.dc)/p.amp)/2;
+ const unit=p.duration>=1?[1,'s']:p.duration>=1e-3?[1e3,'ms']:p.duration>=1e-6?[1e6,'µs']:[1e9,'ns'];
+ const text=(x,y,value,anchor)=>'<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" font-size="13" fill="#536566">'+value+'</text>';
+ const line=(x1,y1,x2,y2)=>'<line x1="'+x1+'" x2="'+x2+'" y1="'+y1+'" y2="'+y2+'" stroke="#d9e3e0"/>';
+ const parts=[text(12,15,'V','start')];
+ for(let k=0;k<=4;k++){
+  const value=p.dc+p.amp*(1-k/2);
+  parts.push(line(left,y(value),left+width,y(value)),text(left-8,y(value)+4,number(value,5),'end'));
+ }
+ for(let k=0;k<=3;k++){
+  const t=k/p.f;
+  parts.push(line(x(t),top,x(t),top+height),text(x(t),208,number(t*unit[0],4),'middle'));
+ }
+ parts.push(text(left+width,232,'时间 ('+unit[1]+')','end'));
+ function traceLine(index,style){
+  const points=wave.map(row=>x(row[0]).toFixed(2)+','+y(row[index]).toFixed(2)).join(' ');
+  return '<polyline fill="none" '+style+' points="'+points+'"/>';
+ }
+ parts.push(traceLine(1,'stroke="#395ab1" stroke-width="2" stroke-dasharray="6 4"'),traceLine(2,'stroke="#006d67" stroke-width="3"'));
+ const t=Number(slider.value)/Number(slider.max)*p.duration;
+ let hi=wave.findIndex(row=>row[0]>=t);
+ if(hi<0)hi=wave.length-1;
+ const a=wave[Math.max(0,hi-1)],b=wave[hi];
+ const mix=b[0]>a[0]?Math.min(1,(t-a[0])/(b[0]-a[0])):0;
+ const at=i=>a[i]+mix*(b[i]-a[i]);
+ parts.push('<line x1="'+x(t)+'" x2="'+x(t)+'" y1="'+top+'" y2="'+(top+height)+'" stroke="#687777" stroke-dasharray="3 3"/>');
+ for(const [i,color] of [[1,'#395ab1'],[2,'#006d67']])parts.push('<circle cx="'+x(t)+'" cy="'+y(at(i))+'" r="4" fill="'+color+'"/>');
+ chart.innerHTML=parts.join('');
+ output.textContent='t = '+number(t*unit[0],5)+' '+unit[1]+'　Vin = '+number(at(1),5)+' V　Vout = '+number(at(2),5)+' V';
+}
+$('timeSlider').oninput=drawWave;
 function draw(){
+ drawWave();
  document.querySelectorAll('[data-probe]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.probe===$('probe').value)));
  document.querySelectorAll('[data-mode]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.mode===mode)));
  if(!result){for(const id of ['op','ac','angle'])$(id).textContent='—';$('chart').replaceChildren();$('cursor').textContent='';return}
@@ -98,7 +161,7 @@ function update(){
  const id=++revision;clearTimeout(timer);if(busy)stopWorker();
  result=null;settings=read();draw();$('retry').hidden=true;
  if(!settings){$('fc').textContent='—';$('net').textContent='';$('status').textContent='请填写范围内的有效数值。';return}
- const p=settings;$('fc').textContent=freqLabel(p.fc);$('net').textContent=['EasyAnalog RC low-pass','Vin in 0 DC '+p.dc+' AC '+p.amp,'R1 in out '+p.R,'C1 out 0 '+p.C,'.op','.ac dec 24 '+p.lo+' '+p.hi,'.end'].join('\n');
+ const p=settings;$('fc').textContent=freqLabel(p.fc);$('net').textContent=['EasyAnalog RC low-pass',p.source,'R1 in out '+p.R,'C1 out 0 '+p.C,'.op','.ac dec 24 '+p.lo+' '+p.hi,p.tran,'.end'].join('\n');
  if($('engine').value==='exact'){stopWorker();result=exact(p);$('status').textContent='当前读数来自理想 RC 解析解。';draw();return}
  $('status').textContent='正在加载或运行 ngspice…';
  timer=setTimeout(()=>{
@@ -106,7 +169,7 @@ function update(){
  if(!worker){const url=URL.createObjectURL(new Blob([$('solver').textContent],{type:'text/javascript'}));worker=new Worker(url,{type:'module'});URL.revokeObjectURL(url)}
  busy=true;limit=setTimeout(()=>{if(id===revision)fail()},45000);
  worker.onerror=()=>{if(id===revision)fail()};
- worker.onmessage=({data})=>{if(id!==revision)return;clearTimeout(limit);busy=false;if(data.error||!data.points?.length||!data.points.every(row=>row.every(Number.isFinite))){fail();return}result=data;$('status').textContent='ngspice 已完成工作点与交流扫频计算。';draw()};
+ worker.onmessage=({data})=>{if(id!==revision)return;clearTimeout(limit);busy=false;if(data.error||!data.wave?.length||!data.wave.every(row=>row.every(Number.isFinite))||!data.points?.length||!data.points.every(row=>row.every(Number.isFinite))){fail();return}result=data;$('status').textContent='ngspice 已完成工作点、交流扫频与瞬态分析。';draw()};
  worker.postMessage({...p,engineURL:new URL('https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs',location.href).href});
  }catch{fail()}
  },180);
