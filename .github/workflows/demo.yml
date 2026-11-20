@@ -1,4 +1,4 @@
-name: Verify RC demo and publish Pages
+name: Verify circuit demos and publish Pages
 on: [push, workflow_dispatch]
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
           npm install --no-save --ignore-scripts eecircuit-engine@1.8.0 playwright@1.56.1
           mkdir -p public/vendor
           cp -R node_modules/eecircuit-engine/dist/. public/vendor/
-          cp index.html public/
+          cp index.html circuits.js public/
           sed -i 's|https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs|./vendor/eecircuit-engine.mjs|' public/index.html
           npx playwright install --with-deps chromium
       - name: Verify actual browser simulation

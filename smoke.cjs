@@ -58,6 +58,52 @@ const { chromium } = require('playwright');
     await page.locator('#engine').selectOption('exact');
     await checkWave();
 
+    async function switchCase(id) {
+      await page.selectOption('#case', id);
+      await page.selectOption('#engine', 'spice');
+      await ready();
+      assert.equal(new URL(page.url()).searchParams.get('case'), id);
+      assert.equal(await page.locator('#timeChart polyline').count(), 2);
+    }
+    await switchCase('highpass');
+    assert(Math.abs(await read('#op')) < 1e-8);
+    assert(Math.abs(await read('#angle') - 45) < 0.03);
+    assert(Math.abs(await read('#ac') - Math.SQRT1_2) < 0.0002);
+    const highpassError = await page.evaluate(() => Math.max(...result.wave.map(([t, vin, vout]) => {
+      const {f, fc, dc, amp, R, C} = settings;
+      const angle = 2 * Math.PI * f * t, ratio = f / fc;
+      const lowpass = dc + amp * (Math.sin(angle) - ratio * Math.cos(angle)
+        + ratio * Math.exp(-t / (R * C))) / (1 + ratio ** 2);
+      return Math.abs(vout - (vin - lowpass));
+    })));
+    assert(highpassError < 0.001);
+    await page.selectOption('#engine', 'exact');
+    assert(Math.abs(await read('#angle') - 45) < 0.03);
+    await switchCase('common-source');
+    assert(Math.abs(await read('#op') - 3.825) < 0.01);
+    assert(Math.abs(await read('#ac') / 0.05 - 4.7) < 0.02);
+    assert(await read('#angle') > 175);
+    await page.selectOption('#probe', 'i');
+    assert(Math.abs(await read('#op') - 0.25) < 0.001);
+    await page.locator('#amp').fill('0.5');
+    await ready();
+    const swing = await page.evaluate(() => result.wave.map(row => row[2]));
+    assert(Math.min(...swing) < 1.5 && Math.max(...swing) > 4.9);
+
+    await switchCase('follower');
+    const output = await read('#op');
+    assert(Math.abs(output - 1.032) < 0.005);
+    assert(Math.abs(await read('#ac') / 0.1 - 0.815) < 0.005);
+    assert(Math.abs(await read('#angle')) < 1);
+    await page.locator('[data-probe=vdd]').click();
+    assert.equal(await read('#op'), 5);
+    await page.locator('#dc').fill('1.9');
+    await ready();
+    await page.selectOption('#probe','out');
+    assert(await read('#op') < output - 0.2);
+    console.log('Verified high-pass, common-source amplification and source follower.');
+
+
   } finally {
     await browser.close();
   }

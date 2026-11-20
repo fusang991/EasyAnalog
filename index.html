@@ -6,23 +6,21 @@
 <style>
 :root{color-scheme:light;--ink:#182628;--muted:#58686c;--line:#cfdbd9;--teal:#006d67;--blue:#395ab1;font:16px/1.55 "Inter","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:#f1f5f3}
 *{box-sizing:border-box}body{margin:0}header{border-bottom:1px solid var(--line);background:white}header div,main{max-width:1090px;margin:auto;padding:17px 24px}header div{display:flex;gap:12px;align-items:center;font-weight:750;letter-spacing:.01em}header svg{background:var(--teal);border-radius:8px;padding:5px}main{padding-top:28px}h1{font-size:clamp(1.6rem,4vw,2.4rem);margin:2px 0 16px}h2{font-size:1.12rem;margin:0 0 10px}.chapter,small,.hint{color:var(--muted)}.chapter{font-size:.9rem}.layout{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,1.8fr);gap:16px}.card{border:1px solid var(--line);background:white;border-radius:14px;padding:20px;margin-bottom:16px}.field{display:grid;grid-template-columns:1fr 120px;gap:12px;align-items:center;margin:12px 0}input,select,button{font:inherit}input,select{width:100%;border:1px solid #adbfbc;border-radius:6px;padding:7px;color:var(--ink);background:white}button{border:1px solid #8fa5a1;background:white;border-radius:7px;padding:7px 14px;cursor:pointer;color:var(--ink)}:focus-visible{outline:3px solid #d88a32;outline-offset:2px}button[aria-pressed=true]{color:white;background:var(--teal);border-color:var(--teal)}.hint{font-size:.9rem;margin:8px 0}.circuit{width:100%;height:146px;color:var(--ink);background:#f5f8f7;border-radius:8px}.probe{cursor:pointer}.probe circle{fill:white;stroke:var(--teal);stroke-width:3}.probe[aria-pressed=true] circle{fill:#77e3ce}.probe text{fill:#005c56;font-weight:bold}.readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.readouts div{padding:10px;background:#edf5f2;border-radius:7px}.readouts small,.readouts strong{display:block}.readouts strong{font-variant-numeric:tabular-nums}.chart{width:100%;display:block;min-height:180px}.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.controls select{width:auto}#status{font-size:.9rem;color:var(--muted);min-height:1.6em}.plotHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.plotHead h2{margin:0}.legend{color:var(--teal);font-size:.9rem}details{margin-top:12px}summary{cursor:pointer}pre{white-space:pre-wrap;background:#f5f8f7;padding:10px}footer{color:var(--muted);font-size:.86rem;padding-bottom:15px}a{color:var(--teal)}@media(max-width:700px){.layout{grid-template-columns:1fr;gap:0}header div,main{padding-left:14px;padding-right:14px}.card{padding:15px}.readouts{grid-template-columns:1fr 1fr}.field{margin:8px 0}}
+.case-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px}.case-picker select{width:auto;max-width:100%}.circuit{height:180px}
 </style></head><body>
 <header><div><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="white" stroke-width="2" d="M1 13h4l3-8 5 15 4-10 2 3h4"/></svg>EasyAnalog</div></header>
-<main><div class="chapter">第6章 · 放大器的频率响应</div><h1>一阶 RC 低通</h1>
+<main><label class="case-picker">切换电路 <select id="case"></select></label><div class="chapter">第6章 · 放大器的频率响应</div><h1>一阶 RC 低通</h1><p id="caseHint"></p>
 <div class="layout"><section><div class="card"><h2>电路参数</h2>
 <form id="params">
-<label class="field">电阻 R（kΩ）<input id="r" type="number" value="1" min="0.01" max="100" step="any" required></label>
-<label class="field">电容 C（µF）<input id="c" type="number" value="1" min="0.01" max="100" step="any" required></label>
+<label class="field"><span id="rLabel">电阻 R（kΩ）</span><input id="r" type="number" value="1" min="0.01" max="100" step="any" required></label>
+<label class="field"><span id="cLabel">电容 C（µF）</span><input id="c" type="number" value="1" min="0.01" max="100" step="any" required></label>
 <label class="field">直流偏置（V）<input id="dc" type="number" value="1" min="-20" max="20" step="any" required></label>
 <label class="field">交流峰值（V）<input id="amp" type="number" value="1" min="0.01" max="10" step="any" required></label>
 <label class="field">输入频率（Hz）<input id="f" type="number" value="159.155" min="0.001" max="1e9" step="any" required></label>
+<label class="field" id="supplyField" style="display:none">电源 VDD（V）<input id="supply" type="number" value="5" min="1" max="10" step="any" required disabled></label>
 </form><button type="button" id="cutoff">将探测频率设为截止频率</button>
-</div><div class="card"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select><p id="status" role="status"></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></div></section>
-<section><div class="card"><h2>电路与探针</h2><svg class="circuit" viewBox="0 0 450 150" aria-label="RC 低通电路图">
-<g stroke="currentColor" stroke-width="2.4" fill="none"><path d="M73 52h66l6-9 8 18 8-18 8 18 8-18 8 18 7-9h123v26m-17 0h34m-34 8h34m-17 0v35H73V96m0-44v9"/><circle cx="73" cy="79" r="18"/><path d="M64 79q4-10 9 0t9 0m140 42v8m-13 0h26m-21 5h16m-12 5h8"/></g>
-<g font-size="15" text-anchor="middle" fill="currentColor"><text x="165" y="31">R</text><text x="348" y="89">C</text></g>
-<g class="probe" data-probe="in" tabindex="0" role="button" aria-label="测量 Vin"><circle cx="101" cy="52" r="6"/><text x="82" y="34">Vin</text></g><g class="probe" data-probe="out" tabindex="0" role="button" aria-label="测量 Vout"><circle cx="315" cy="52" r="6"/><text x="295" y="34">Vout</text></g>
-</svg><div class="controls" style="margin:10px 0"><label for="probe">探针</label><select id="probe"><option value="out">Vout · 输出电压</option><option value="in">Vin · 输入电压</option><option value="i">I(R) · Vin → Vout</option><option value="gnd">GND · 地电压</option></select></div>
+</div><div class="card"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select><p class="hint" id="modelNote" hidden>教学模型：长沟道 NMOS，阈值 0.7 V，体端接地。CL 为外接负载电容。</p><p id="status" role="status"></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></div></section>
+<section><div class="card"><h2>电路与探针</h2><svg class="circuit" viewBox="0 0 450 165" role="group" aria-label="电路与可选探针"></svg><div class="controls" style="margin:10px 0"><label for="probe">探针</label><select id="probe"><option value="out">Vout · 输出电压</option><option value="in">Vin · 输入电压</option><option value="i">I(R) · Vin → Vout</option><option value="gnd">GND · 地电压</option></select></div>
 <div class="readouts"><div><small>直流工作点</small><strong id="op">—</strong></div><div><small>指定频率 · 峰值</small><strong id="ac">—</strong></div><div><small>指定频率 · 相位</small><strong id="angle">—</strong></div></div></div>
 <div class="card" id="waveform">
 <h2>电压随时间变化</h2>
@@ -31,13 +29,14 @@
 <label for="timeSlider">时间游标</label><input id="timeSlider" type="range" min="0" max="600" value="100" disabled style="padding:0;accent-color:var(--teal)">
 <output id="timeReadout" for="timeSlider">—</output>
 </div>
-<div class="card"><div class="plotHead"><h2>输出频率响应</h2><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div></div><p class="hint"><span class="legend">● Vout / Vin</span>　 截止频率 <strong id="fc">—</strong></p>
-<svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="一阶 RC 低通波特图"></svg><p class="hint" id="cursor"></p>
+<div class="card"><div class="plotHead"><h2>输出频率响应</h2><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div></div><p class="hint"><span class="legend">● Vout / Vin</span>　 <span id="freqCaption">截止频率</span> <strong id="fc">—</strong></p>
+<svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输出与输入的幅频或相频响应"></svg><p class="hint" id="cursor"></p>
 </div></section></div>
 <footer>仿真内核使用 <a href="https://github.com/eelab-dev/EEcircuit-engine">EEcircuit-engine / ngspice</a>。解析解适用于图示理想 RC 电路。</footer></main>
+<script src="./circuits.js"></script>
 <script id="solver" type="text/plain">
 let simulator;
-const circuit=(p,analysis)=>['EasyAnalog RC low-pass',p.source,'R1 in out '+p.R,'C1 out 0 '+p.C,analysis,'.end'].join('\n');
+const circuit=(p,analysis)=>[p.title,p.source,...p.elements,analysis,'.end'].join('\n');
 function trace(result,name){
  const found=result.data.find(row=>row.name.toLowerCase()===name);
  if(!found)throw new Error('缺少仿真输出 '+name);
@@ -57,7 +56,7 @@ self.onmessage=async({data:p})=>{
   const sweep=await run(p,'.ac dec 24 '+p.lo+' '+p.hi);
   const sample=await run(p,'.ac lin 1 '+p.f+' '+p.f);
   const output=trace(sweep,'v(out)'),input=trace(sweep,'v(in)'),freq=trace(sweep,'frequency');
-  const points=output.map((v,i)=>[freq[i].real,20*Math.log10(Math.hypot(v.real,v.img)/Math.hypot(input[i].real,input[i].img)),(Math.atan2(v.img,v.real)-Math.atan2(input[i].img,input[i].real))*180/Math.PI]);
+  const points=output.map((v,i)=>[freq[i].real,20*Math.log10(Math.hypot(v.real,v.img)/Math.hypot(input[i].real,input[i].img)),(Math.atan2(v.img,v.real)-Math.atan2(input[i].img,input[i].real))*180/Math.PI]).filter(row=>row.every(Number.isFinite));
   const vin=trace(sample,'v(in)')[0],vout=trace(sample,'v(out)')[0];
   const vi=trace(op,'v(in)')[0],vo=trace(op,'v(out)')[0];
   const transient=await run(p,p.tran);
@@ -77,24 +76,31 @@ const number=(v,d=3)=>Number(v.toPrecision(d)).toLocaleString('en-US',{maximumFr
 function freqLabel(f){return f>=1e6?number(f/1e6)+' MHz':f>=1000?number(f/1000)+' kHz':number(f)+' Hz'}
 function read(){
  if(!controls.checkValidity())return null;
- const R=$('r').valueAsNumber*1e3,C=$('c').valueAsNumber*1e-6,f=$('f').valueAsNumber,fc=1/(2*Math.PI*R*C);
+ const R=$('r').valueAsNumber*1e3,C=$('c').valueAsNumber*active.capacitorScale,f=$('f').valueAsNumber,fc=1/(2*Math.PI*R*C);
  const dc=$('dc').valueAsNumber,amp=$('amp').valueAsNumber;
  const duration=3/f,step=1/(160*f);
+ const supply=$('supply').valueAsNumber;
  const source='Vin in 0 DC '+dc+' AC '+amp+' SIN('+dc+' '+amp+' '+f+')';
  const tran='.tran '+step+' '+duration+' 0 '+step;
- return {R,C,dc,amp,f,fc,lo:fc/100,hi:fc*100,duration,source,tran};
+ const p={R,C,dc,amp,f,fc,lo:fc/100,hi:fc*100,duration,source,tran,supply,title:'EasyAnalog '+$('case').value};
+ p.elements=active.net(p);
+ return p;
 }
 function exact(p){
- function voltage(f){const x=f/p.fc;return {real:p.amp/(1+x*x),img:-p.amp*x/(1+x*x)}}
+ const high=$('case').value==='highpass';
+ function voltage(f){
+  const x=f/p.fc,scale=p.amp/(1+x*x);
+  return high ? {real:scale*x*x,img:scale*x} : {real:scale,img:-scale*x};
+ }
  const ratio=p.f/p.fc;
  const wave=Array.from({length:481},(_,i)=>{
   const t=p.duration*i/480,angle=2*Math.PI*p.f*t;
   const vin=p.dc+p.amp*Math.sin(angle);
   // The exponential enforces Vout(0) = DC at the start of the sine wave.
   const response=(Math.sin(angle)+ratio*(Math.expm1(-t/(p.R*p.C))+2*Math.sin(angle/2)**2))/(1+ratio*ratio);
-  return [t,vin,p.dc+p.amp*response];
+  return [t,vin,high?p.amp*(Math.sin(angle)-response):p.dc+p.amp*response];
  });
- return {wave,points:Array.from({length:97},(_,i)=>{const f=p.lo*10**(i/24),x=f/p.fc;return [f,-10*Math.log10(1+x*x),-Math.atan(x)*180/Math.PI]}),volt:[{real:p.amp,img:0},voltage(p.f)],dc:[p.dc,p.dc]};
+ return {wave,points:Array.from({length:97},(_,i)=>{const f=p.lo*10**(i/24),x=f/p.fc;return high?[f,-10*Math.log10(1+1/(x*x)),Math.atan(1/x)*180/Math.PI]:[f,-10*Math.log10(1+x*x),-Math.atan(x)*180/Math.PI]}),volt:[{real:p.amp,img:0},voltage(p.f)],dc:[p.dc,high?0:p.dc]};
 }
 function drawWave(){
  const chart=$('timeChart'),slider=$('timeSlider'),output=$('timeReadout');
@@ -103,13 +109,15 @@ function drawWave(){
  const p=settings,wave=result.wave;
  const left=66,width=516,top=24,height=160;
  const x=t=>left+width*t/p.duration;
- const y=v=>top+height*(1-(v-p.dc)/p.amp)/2;
+ const low=Math.min(p.dc-p.amp,...wave.map(row=>row[2]));
+ const high=Math.max(p.dc+p.amp,...wave.map(row=>row[2]));
+ const y=v=>top+height*(high-v)/(high-low);
  const unit=p.duration>=1?[1,'s']:p.duration>=1e-3?[1e3,'ms']:p.duration>=1e-6?[1e6,'µs']:[1e9,'ns'];
  const text=(x,y,value,anchor)=>'<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" font-size="13" fill="#536566">'+value+'</text>';
  const line=(x1,y1,x2,y2)=>'<line x1="'+x1+'" x2="'+x2+'" y1="'+y1+'" y2="'+y2+'" stroke="#d9e3e0"/>';
  const parts=[text(12,15,'V','start')];
  for(let k=0;k<=4;k++){
-  const value=p.dc+p.amp*(1-k/2);
+  const value=high-(high-low)*k/4;
   parts.push(line(left,y(value),left+width,y(value)),text(left-8,y(value)+4,number(value,5),'end'));
  }
  for(let k=0;k<=3;k++){
@@ -140,28 +148,41 @@ function draw(){
  document.querySelectorAll('[data-mode]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.mode===mode)));
  if(!result){for(const id of ['op','ac','angle'])$(id).textContent='—';$('chart').replaceChildren();$('cursor').textContent='';return}
  const p=settings,[vin,vout]=result.volt,[di,do_]=result.dc,probe=$('probe').value;
- const [v,bias,unit]=probe==='out'?[vout,do_,'V']:probe==='in'?[vin,di,'V']:probe==='i'?[{real:(vin.real-vout.real)*1e3/p.R,img:(vin.img-vout.img)*1e3/p.R},(di-do_)*1e3/p.R,'mA']:[{real:0,img:0},0,'V'];
+ const nodes={in:[vin,di],out:[vout,do_],gnd:[{real:0,img:0},0],vdd:[{real:0,img:0},p.supply]};
+ let [v,bias]=nodes[probe]||nodes.gnd;
+ let unit='V';
+ if(probe==='i'){
+  const [a,b]=active.resistorNodes.map(name=>nodes[name]);
+  const scale=1000/p.R;
+  v={real:(a[0].real-b[0].real)*scale,img:(a[0].img-b[0].img)*scale};
+  bias=(a[1]-b[1])*scale;
+  unit='mA';
+ }
  $('op').textContent=number(bias)+' '+unit;$('ac').textContent=number(Math.hypot(v.real,v.img),4)+' '+unit;$('angle').textContent=Math.hypot(v.real,v.img)>0?number(Math.atan2(v.img,v.real)*180/Math.PI,4)+'°':'—';
- const phase=mode==='phase',floor=phase?-90:-42,x=f=>65+Math.log10(f/p.lo)*130,y=a=>25+a/floor*166;
+ const phase=mode==='phase',index=phase?2:1;
+ const values=result.points.map(row=>row[index]),stride=phase?30:10;
+ const bottom=Math.floor(Math.min(0,...values)/stride)*stride;
+ const top=Math.max(bottom+stride,Math.ceil(Math.max(0,...values)/stride)*stride);
+ const x=f=>65+Math.log10(f/p.lo)*130,y=a=>25+(top-a)/(top-bottom)*166;
  const parts=[],svg=$('chart');
  function line(x1,y1,x2,y2,color,dash=''){parts.push('<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-dasharray="'+dash+'"/>')}
  function label(x,y,s,anchor='middle'){parts.push('<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" fill="#536566" font-size="13">'+s+'</text>')}
- for(const tick of phase?[0,-30,-60,-90]:[0,-10,-20,-30,-40]){line(65,y(tick),585,y(tick),'#d9e3e0');label(55,y(tick)+4,tick,'end')}
+ for(let tick=bottom;tick<=top;tick+=stride){line(65,y(tick),585,y(tick),'#d9e3e0');label(55,y(tick)+4,tick,'end')}
  for(let i=0;i<5;i++){let f=p.lo*10**i;line(x(f),25,x(f),191,'#d9e3e0');label(x(f),213,freqLabel(f))}
  label(16,16,phase?'°':'dB','start');
  parts.push('<polyline fill="none" stroke="#006d67" stroke-width="3" points="'+result.points.map(a=>x(a[0])+','+y(a[phase?2:1])).join(' ')+'"/>');
  const gain=20*Math.log10(Math.hypot(vout.real,vout.img)/Math.hypot(vin.real,vin.img)),deg=(Math.atan2(vout.img,vout.real)-Math.atan2(vin.img,vin.real))*180/Math.PI;
- if(p.f>=p.lo&&p.f<=p.hi){line(x(p.f),25,x(p.f),191,'#395ab1','4 4');parts.push('<circle cx="'+x(p.f)+'" cy="'+y(phase?deg:gain)+'" r="5" fill="#395ab1"/>')}
+ if(Number.isFinite(gain)&&p.f>=p.lo&&p.f<=p.hi){line(x(p.f),25,x(p.f),191,'#395ab1','4 4');parts.push('<circle cx="'+x(p.f)+'" cy="'+y(phase?deg:gain)+'" r="5" fill="#395ab1"/>')}
  svg.innerHTML=parts.join('');
- $('cursor').textContent=freqLabel(p.f)+'　'+number(gain,5)+' dB　'+number(deg,5)+'°';
+ $('cursor').textContent=Number.isFinite(gain)?freqLabel(p.f)+'　'+number(gain,5)+' dB　'+number(deg,5)+'°':freqLabel(p.f)+'　小信号输出为零';
 }
 function stopWorker(){clearTimeout(limit);if(worker)worker.terminate();worker=null;busy=false}
-function fail(){stopWorker();result=null;draw();$('status').textContent='仿真内核未能完成计算。可以重试，或切换到 RC 解析解。';$('retry').hidden=false}
+function fail(){stopWorker();result=null;draw();$('status').textContent='仿真未完成，请检查参数后重试。';$('retry').hidden=false}
 function update(){
  const id=++revision;clearTimeout(timer);if(busy)stopWorker();
  result=null;settings=read();draw();$('retry').hidden=true;
  if(!settings){$('fc').textContent='—';$('net').textContent='';$('status').textContent='请填写范围内的有效数值。';return}
- const p=settings;$('fc').textContent=freqLabel(p.fc);$('net').textContent=['EasyAnalog RC low-pass',p.source,'R1 in out '+p.R,'C1 out 0 '+p.C,'.op','.ac dec 24 '+p.lo+' '+p.hi,p.tran,'.end'].join('\n');
+ const p=settings;$('fc').textContent=active.mos?freqLabel(p.lo)+' – '+freqLabel(p.hi):freqLabel(p.fc);$('net').textContent=[p.title,p.source,...p.elements,'.op','.ac dec 24 '+p.lo+' '+p.hi,p.tran,'.end'].join('\n');
  if($('engine').value==='exact'){stopWorker();result=exact(p);$('status').textContent='当前读数来自理想 RC 解析解。';draw();return}
  $('status').textContent='正在加载或运行 ngspice…';
  timer=setTimeout(()=>{
@@ -169,7 +190,7 @@ function update(){
  if(!worker){const url=URL.createObjectURL(new Blob([$('solver').textContent],{type:'text/javascript'}));worker=new Worker(url,{type:'module'});URL.revokeObjectURL(url)}
  busy=true;limit=setTimeout(()=>{if(id===revision)fail()},45000);
  worker.onerror=()=>{if(id===revision)fail()};
- worker.onmessage=({data})=>{if(id!==revision)return;clearTimeout(limit);busy=false;if(data.error||!data.wave?.length||!data.wave.every(row=>row.every(Number.isFinite))||!data.points?.length||!data.points.every(row=>row.every(Number.isFinite))){fail();return}result=data;$('status').textContent='ngspice 已完成工作点、交流扫频与瞬态分析。';draw()};
+ worker.onmessage=({data})=>{if(id!==revision)return;clearTimeout(limit);busy=false;if(data.error||!data.wave?.length||!data.wave.every(row=>row.every(Number.isFinite))||!Array.isArray(data.points)||!data.points.every(row=>row.every(Number.isFinite))){fail();return}result=data;$('status').textContent='ngspice 已完成工作点、交流扫频与瞬态分析。';draw()};
  worker.postMessage({...p,engineURL:new URL('https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs',location.href).href});
  }catch{fail()}
  },180);
@@ -177,7 +198,42 @@ function update(){
 const retry=document.createElement('button');retry.id='retry';retry.hidden=true;retry.textContent='重试仿真';$('status').after(retry);retry.onclick=update;
 controls.addEventListener('input',update);controls.onsubmit=e=>e.preventDefault();$('engine').onchange=update;$('probe').onchange=draw;
 $('cutoff').onclick=()=>{if(read()){$('f').value=Number(read().fc.toPrecision(9));update()}};
-document.querySelectorAll('[data-probe]').forEach(el=>{el.onclick=()=>{$('probe').value=el.dataset.probe;draw()};el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();el.onclick()}}});
+function wireProbes(){document.querySelectorAll('[data-probe]').forEach(el=>{el.onclick=()=>{$('probe').value=el.dataset.probe;draw()};el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();el.onclick()}}});}
 document.querySelectorAll('[data-mode]').forEach(el=>el.onclick=()=>{mode=el.dataset.mode;draw()});
-update();
+let active;
+const caseSelect=$('case');
+for(const [id,entry] of Object.entries(caseBook))caseSelect.add(new Option(entry.name,id));
+function selectCase(){
+ const id=caseSelect.value;
+ active=caseBook[id];
+ const url=new URL(location.href);
+ url.searchParams.set('case',id);
+ if(location.protocol!=='file:')history.replaceState(null,'',url);
+ document.title=active.name+' · EasyAnalog';
+ document.querySelector('h1').textContent=active.name;
+ document.querySelector('.chapter').textContent=active.chapter;
+ $('caseHint').textContent=active.hint;
+ $('rLabel').textContent=(active.resistorLabel||'电阻 R')+'（kΩ）';
+ $('cLabel').textContent=(active.mos?'负载电容 CL':'电容 C')+'（'+active.capacitorUnit+'）';
+ for(const [i,key] of ['r','c','dc','amp','f'].entries())$(key).value=active.defaults[i];
+ $('modelNote').hidden=!active.mos;
+ $('supply').disabled=!active.mos;
+ $('supply').value=5;
+ $('supplyField').style.display=active.mos?'grid':'none';
+ $('cutoff').hidden=!!active.mos;
+ $('freqCaption').textContent=active.mos?'扫频范围':'截止频率';
+ $('engine').querySelector('[value=exact]').disabled=!!active.mos;
+ if(active.mos)$('engine').value='spice';
+ const probes=[['out','Vout · 输出电压'],['in','Vin · 输入电压'],['i',active.currentLabel],['gnd','GND · 地电压']];
+ if(active.mos)probes.push(['vdd','VDD · 电源电压']);
+ $('probe').replaceChildren(...probes.map(([key,name])=>new Option(name,key)));
+ document.querySelector('.circuit').innerHTML=schematic(id);
+ wireProbes();
+ $('timeSlider').value=100;
+ update();
+}
+const requested=new URL(location.href).searchParams.get('case');
+caseSelect.value=Object.hasOwn(caseBook,requested)?requested:'lowpass';
+caseSelect.onchange=selectCase;
+selectCase();
 </script></body></html>
