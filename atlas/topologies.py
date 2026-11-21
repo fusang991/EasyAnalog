@@ -394,7 +394,7 @@ chapter(10, {
     "串联调零电阻的米勒补偿": compensation("Xo R:Rz F C:Cc Vout"),
     "MOS 调零电阻米勒补偿": compensation("Xo N:Vrz:三极区 F C:Cc Vout"),
     "调零 MOS 的跟踪偏置支路": ["VDD P:K K P:Vrz Vrz I:Iref GND","VDD P:Xo Vout N:Vbn GND","Xo P:Vrz:三极区 F C:Cc Vout","Vout C:CL GND"],
-    "电阻设定跨导的自偏置电流基准": ["VDD P:K G N:G GND","VDD R:Rset S P:K:宽管 K N:G GND"],
+    "电阻设定跨导的自偏置电流基准": ["VDD P:K K N:G GND","VDD R:Rset S P:K:宽管 G N:G GND"],
     "源极跟随器缓冲的米勒补偿": two_stage()+[follower("Vout",out="B"),"B C:Cc Xo"],
     "共栅电流缓冲米勒补偿": two_stage()+["Xo N:Vbc B I:Ibuf GND","Vout C:Cc B"],
     "利用首级共栅管的间接补偿": [block("差分跨导输入级","Vin+ Vin−","F"),"VDD P:Vbp Xo N:Vbc F I:Ib GND",cs("I:Io",gate="Xo"),"Vout C:Cc F","Vout C:CL GND"],

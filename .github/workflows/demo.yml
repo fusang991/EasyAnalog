@@ -16,7 +16,7 @@ jobs:
           npm install --no-save --ignore-scripts eecircuit-engine@1.8.0 playwright@1.56.1
           mkdir -p public/vendor
           cp -R node_modules/eecircuit-engine/dist/. public/vendor/
-          cp index.html circuits.js atlas.html public/
+          cp index.html circuits.js experiment.js atlas.html public/
           python3 -B atlas/build.py circuits-by-chapter.json public
           sed -i 's|https://cdn.jsdelivr.net/npm/eecircuit-engine@1.8.0/dist/eecircuit-engine.mjs|./vendor/eecircuit-engine.mjs|' public/index.html
           npx playwright install --with-deps chromium

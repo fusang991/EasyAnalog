@@ -63,10 +63,8 @@ function show(entry){
  }
  const index=visible.indexOf(entry);
  $('prev').disabled=index<1;$('next').disabled=index===visible.length-1;
- const sims={'电阻负载共源放大器':'common-source','电阻负载源极跟随器':'follower','一阶 RC 低通电路':'lowpass'};
- const sim=sims[entry.名字];
- $('simulation').hidden=!sim;
- if(sim)$('simulation').href='./?case='+sim;
+ $('simulation').hidden=false;
+ $('simulation').href='./?case='+entry.id;
 }
 function filter(preferred){
  const term=$('search').value.trim().toLowerCase();

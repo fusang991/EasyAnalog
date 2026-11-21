@@ -6,6 +6,7 @@ from html import escape
 from pathlib import Path
 
 from topologies import DRAWINGS, Stage
+from experiments import Bench
 
 STYLE = """
 svg{color:#223738;font-family:system-ui,'Microsoft YaHei',sans-serif}
@@ -292,13 +293,23 @@ def build(source,dest):
     graphics=dest/"diagrams"
     graphics.mkdir(exist_ok=True,parents=True)
     chapters=Counter()
+    # The topology registry fixes chapter-local case numbers even if the JSON
+    # is sorted differently. The URLs and the associated fixtures move together.
+    case_ids={}
+    for key in DRAWINGS:
+        chapter=key[0]
+        chapters[chapter]+=1
+        case_ids[key]=f'c{int(chapter[1:-1]):02}-{chapters[chapter]:02}'
     catalog=[]
+    experiments=dest/"experiments"
+    experiments.mkdir(exist_ok=True)
     for entry,key in zip(entries,keys):
         chapter,title=key
-        chapters[chapter]+=1
-        slug=f'c{int(chapter[1:-1]):02}-{chapters[chapter]:02}'
+        slug=case_ids[key]
         svg=render(title,DRAWINGS[key])
         (graphics/(slug+".svg")).write_text(svg)
+        model=Bench(slug,DRAWINGS[key]).finish(title)
+        (experiments/(slug+".json")).write_text(json.dumps(model,ensure_ascii=False))
         catalog.append(dict(entry,id=slug))
     (dest/"catalog.json").write_text(json.dumps(catalog,ensure_ascii=False))
     print(f"Built {len(catalog)} diagrams in {len(chapters)} chapters.")

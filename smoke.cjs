@@ -120,7 +120,8 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#title').textContent(), '电阻负载共源放大器');
     await page.getByRole('link', {name:'打开对应仿真'}).click();
     await ready();
-    assert.equal(await page.locator('#case').inputValue(),'common-source');
+    assert.equal(await page.locator('#case').inputValue(),'c03-01');
+    await require('./atlas-smoke.cjs')(page);
 
   } finally {
     await browser.close();
