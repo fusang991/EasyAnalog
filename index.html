@@ -29,7 +29,8 @@ main{padding:8px var(--gutter)}h1,h2,p{margin:0}h1{font-size:clamp(1.05rem,1.4vw
 .result-tabs button{border-color:transparent;background:transparent;border-radius:6px;padding:5px 12px}
 .result-tabs [aria-selected=true]{background:var(--teal);color:white}
 .chart{display:block;width:100%;height:clamp(255px,36vh,450px)}.hint{margin:6px 0}.legend{color:var(--teal)}
-.cursor-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}#timeReadout{display:block}.plotHead{margin-top:8px}
+.cursor-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}.cursor-row input{padding:0;accent-color:var(--teal)}#timeReadout,#cursor{display:block}.plotHead{margin-top:8px}
+#chart{touch-action:pan-y;cursor:crosshair}
 input,select,button{font:inherit}input,select{min-width:0;border:1px solid #adbfbc;border-radius:6px;padding:5px 8px;color:var(--ink);background:white}
 select{max-width:100%}button{border:1px solid #8fa5a1;background:white;border-radius:7px;padding:5px 12px;cursor:pointer;color:var(--ink)}
 button[aria-pressed=true]{color:white;background:var(--teal);border-color:var(--teal)}:focus-visible{outline:3px solid #cf8029;outline-offset:2px}
@@ -78,11 +79,13 @@ summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;backgroun
 <div id="time-panel" role="tabpanel" aria-labelledby="time-tab">
 <p class="hint"><span id="wave-in" style="color:var(--blue)">┄ Vin 输入</span>　<span class="legend" id="wave-out">━ Vout 输出</span>　<span id="wave-note">前 3 个输入周期</span></p>
 <svg id="timeChart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输入与输出电压随时间变化的波形"></svg>
-<div class="cursor-row"><label for="timeSlider">时间游标</label><input id="timeSlider" type="range" min="0" max="600" value="100" disabled style="padding:0;accent-color:var(--teal)">
+<div class="cursor-row"><label for="timeSlider">时间游标</label><input id="timeSlider" type="range" min="0" max="600" value="100" disabled>
 </div><output id="timeReadout" for="timeSlider">—</output>
 </div>
 <div role="tabpanel" id="freq-panel" aria-labelledby="freq-tab" hidden><div class="plotHead"><div class="controls"><button data-mode="mag" aria-pressed="true">幅频</button><button data-mode="phase" aria-pressed="false">相频</button></div><p class="hint"><span class="legend" id="transfer-label">Vout / Vin</span>　 <span id="freqCaption">截止频率</span> <strong id="fc">—</strong></p></div>
-<svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输出与输入的幅频或相频响应"></svg><p class="hint" id="cursor"></p>
+<svg id="chart" class="chart" viewBox="0 0 620 243" role="img" aria-label="输出与输入的幅频或相频响应"></svg>
+<div class="cursor-row"><label for="freqSlider">频率游标</label><input id="freqSlider" type="range" min="0" max="1" value="0" disabled></div>
+<output id="cursor" for="freqSlider">—</output>
 </div></section>
 <section class="card engine-card"><div class="engine-head"><h2>计算方式</h2><select id="engine" aria-label="计算方式"><option value="spice">ngspice · WebAssembly</option><option value="exact">RC 解析解</option></select></div><p class="hint" id="modelNote" hidden>教学模型：长沟道 NMOS，阈值 0.7 V，体端接地。CL 为外接负载电容。</p><p id="status" role="status"></p><p class="hint" id="device-op" hidden></p><details><summary>查看 SPICE 网表</summary><pre id="net"></pre></details></section>
 </div>
@@ -225,8 +228,37 @@ function drawWave(){
  output.textContent='t = '+number(t*unit[0],5)+' '+unit[1]+'　'+inputName+' = '+number(at(1),5)+' '+inputUnit+'　'+outputName+' = '+number(at(2),5)+' '+outputUnit;
 }
 $('timeSlider').oninput=drawWave;
+const freqSlider=$('freqSlider'),freqChart=$('chart');
+let cursorFrequency=null;
+function closestSample(points,frequency){
+ let best=0,distance=Infinity;
+ for(const [i,[sampleFrequency]] of points.entries()){
+  const next=Math.abs(Math.log(sampleFrequency/frequency));
+  if(next<distance){best=i;distance=next}
+ }
+ return best;
+}
+freqSlider.oninput=()=>{
+ cursorFrequency=result.points[freqSlider.valueAsNumber][0];
+ drawFrequency();
+};
+function moveChartCursor(event){
+ const frame=plotFrame(freqChart);
+ const fraction=Math.max(0,Math.min(1,(event.clientX-freqChart.getBoundingClientRect().left-frame.left)/frame.width));
+ cursorFrequency=settings.lo*(settings.hi/settings.lo)**fraction;
+ drawFrequency();
+}
+freqChart.onpointerdown=event=>{
+ if(!event.isPrimary||event.button!==0||freqSlider.disabled)return;
+ freqChart.setPointerCapture(event.pointerId);
+ moveChartCursor(event);
+};
+freqChart.onpointermove=event=>{
+ if(freqChart.hasPointerCapture(event.pointerId)&&!freqSlider.disabled)moveChartCursor(event);
+};
 function draw(){
  drawWave();
+ drawFrequency();
  const opDevice=result?.device,deviceInfo=$('device-op');
  deviceInfo.hidden=!opDevice;
  if(opDevice){
@@ -236,7 +268,7 @@ function draw(){
  }
  document.querySelectorAll('[data-probe]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.probe===$('probe').value)));
  document.querySelectorAll('[data-mode]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.mode===mode)));
- if(!result){for(const id of ['op','ac','angle'])$(id).textContent='—';$('chart').replaceChildren();$('cursor').textContent='';return}
+ if(!result){for(const id of ['op','ac','angle'])$(id).textContent='—';return}
  const p=settings,[vin,vout]=result.volt,[di,do_]=result.dc,probe=$('probe').value;
  const nodes={in:[vin,di],out:[vout,do_],gnd:[{real:0,img:0},0],vdd:[{real:0,img:0},p.supply]};
  let [v,bias]=nodes[probe]||nodes.gnd;
@@ -250,9 +282,18 @@ function draw(){
   unit='mA';
  }
  $('op').textContent=number(bias)+' '+unit;$('ac').textContent=number(Math.hypot(v.real,v.img),4)+' '+unit;$('angle').textContent=Math.hypot(v.real,v.img)>0?number(Math.atan2(v.img,v.real)*180/Math.PI,4)+'°':'—';
- if(p.noAC){$('ac').textContent='—';$('angle').textContent='—';return}
+ if(p.noAC){$('ac').textContent='—';$('angle').textContent='—'}
+}
+function drawFrequency(){
+ freqSlider.disabled=!result?.points.length;
+ if(freqSlider.disabled){
+  freqChart.replaceChildren();
+  $('cursor').textContent=result&&!settings.noAC?'无有效的扫频响应':'—';
+  freqSlider.removeAttribute('aria-valuetext');
+  return;
+ }
  if($('freq-panel').hidden)return;
- const frame=plotFrame($('chart'));
+ const p=settings,frame=plotFrame(freqChart);
  const phase=mode==='phase',index=phase?2:1;
  const [scaleUnit,offset]=gainUnit(p);
  const curve=result.points.map(([f,db,deg])=>[f,db+offset,deg]);
@@ -267,10 +308,16 @@ function draw(){
  for(let i=0;i<5;i++){let f=p.lo*(p.hi/p.lo)**(i/4);line(x(f),frame.top,x(f),frame.bottom,'#d9e3e0');label(x(f),frame.bottom+20,freqLabel(f))}
  label(16,16,phase?'°':scaleUnit,'start');
  parts.push('<polyline fill="none" stroke="#006d67" stroke-width="3" points="'+curve.map(a=>x(a[0])+','+y(a[phase?2:1])).join(' ')+'"/>');
- const gain=offset+20*Math.log10(Math.hypot(vout.real,vout.img)/Math.hypot(vin.real,vin.img)),deg=(Math.atan2(vout.img,vout.real)-Math.atan2(vin.img,vin.real))*180/Math.PI;
- if(Number.isFinite(gain)&&p.f>=p.lo&&p.f<=p.hi){line(x(p.f),frame.top,x(p.f),frame.bottom,'#395ab1','4 4');parts.push('<circle cx="'+x(p.f)+'" cy="'+y(phase?deg:gain)+'" r="5" fill="#395ab1"/>')}
+ const selected=closestSample(curve,cursorFrequency??p.f);
+ freqSlider.max=curve.length-1;
+ freqSlider.value=selected;
+ const [frequency,gain,deg]=curve[selected];
+ line(x(frequency),frame.top,x(frequency),frame.bottom,'#395ab1','4 4');
+ parts.push('<circle cx="'+x(frequency)+'" cy="'+y(phase?deg:gain)+'" r="5" fill="#395ab1"/>');
  svg.innerHTML=parts.join('');
- $('cursor').textContent=Number.isFinite(gain)?freqLabel(p.f)+'　'+number(gain,5)+' '+scaleUnit+'　'+number(deg,5)+'°':freqLabel(p.f)+'　小信号输出为零';
+ const reading='f = '+freqLabel(frequency)+'　幅值 = '+number(gain,5)+' '+scaleUnit+'　相位 = '+number(deg,5)+'°';
+ $('cursor').textContent=reading;
+ freqSlider.setAttribute('aria-valuetext',reading);
 }
 function stopWorker(){clearTimeout(limit);if(worker)worker.terminate();worker=null;busy=false;workerRuns=0}
 function fail(reason=''){stopWorker();result=null;draw();$('status').textContent='仿真未完成，请检查参数后重试。'+reason;$('retry').hidden=false}
@@ -327,6 +374,7 @@ const caseSelect=$('case');
 for(const [id,entry] of Object.entries(caseBook))caseSelect.add(new Option(entry.name,id));
 function selectCase(){
  const id=caseSelect.value, selection=++selectionRevision;
+ cursorFrequency=null;
  const url=new URL(location.href);
  url.searchParams.set('case',id);
  if(location.protocol!=='file:')history.replaceState(null,'',url);
