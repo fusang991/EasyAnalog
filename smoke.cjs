@@ -113,7 +113,14 @@ const { chromium } = require('playwright');
     await page.selectOption('#probe','out');
     assert(await read('#op') < output - 0.2);
     console.log('Verified high-pass, common-source amplification and source follower.');
-
+    await page.getByRole('link', {name:'电路图册'}).click();
+    await page.locator('#chapter').selectOption('第3章');
+    await page.getByRole('link', {name:'电阻负载共源放大器', exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#figure').naturalWidth>0);
+    assert.equal(await page.locator('#title').textContent(), '电阻负载共源放大器');
+    await page.getByRole('link', {name:'打开对应仿真'}).click();
+    await ready();
+    assert.equal(await page.locator('#case').inputValue(),'common-source');
 
   } finally {
     await browser.close();

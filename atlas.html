@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>电路图册 · EasyAnalog</title>
+<style>
+:root{font:16px/1.5 Inter,"Microsoft YaHei",system-ui,sans-serif;color:#182c2c;background:#f1f5f3;color-scheme:light}
+*{box-sizing:border-box}body,h1,h2,p{margin:0}a{color:#00665e}button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #ce8529;outline-offset:2px}
+header{display:flex;align-items:center;gap:18px;background:white;border-bottom:1px solid #cadad5;padding:8px clamp(12px,2vw,32px)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:750}.brand svg{background:#006d67;padding:4px;border-radius:6px}
+nav{display:flex;gap:15px;font-size:.92rem}nav a{text-decoration:none}nav [aria-current]{font-weight:700;color:#1b3935}
+main{display:grid;grid-template-columns:clamp(235px,24vw,340px) minmax(0,1fr);gap:12px;padding:12px clamp(12px,2vw,32px);align-items:start}
+aside,article{min-width:0;background:white;border:1px solid #ccdad5;border-radius:10px;padding:14px}
+h1{font-size:1.2rem}h2{font-size:clamp(1.1rem,2vw,1.5rem);line-height:1.35}
+label{display:block;font-size:.85rem;color:#4c6261;margin-top:8px}
+select,input{width:100%;padding:6px 8px;background:#fff;border:1px solid #aabdb6;border-radius:6px}
+.directory{margin:10px -6px 0;padding:0;list-style:none;max-height:calc(100dvh - 265px);overflow:auto}
+.directory a{display:block;padding:6px 9px;border-radius:5px;color:#263d3a;font-size:.93rem;text-decoration:none}
+.directory a:hover{background:#edf4f2}.directory [aria-current]{background:#d7eee7;color:#004f49;font-weight:650}
+.heading,.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.chapter{color:#536b65;font-size:.87rem}
+#description{margin:6px 0 10px;color:#364e49}.paper{display:grid;place-items:center;border:1px solid #dbe6e0;border-radius:8px;background:#fafcfb;padding:8px}
+.paper img{display:block;width:100%;height:clamp(280px,59vh,660px);object-fit:contain}.foot{margin-top:9px;font-size:.88rem}
+.foot p,#matches{color:#536762}.foot a{white-space:nowrap}#matches{margin:10px 0 0;font-size:.85rem}
+select.mobile{display:none}button{cursor:pointer;border:1px solid #aabdb6;border-radius:5px;background:white;padding:3px 9px}
+button:disabled{opacity:.45;cursor:default}.steps{display:flex;gap:5px}.links{display:flex;gap:15px}[hidden]{display:none!important}
+@media(max-width:740px){main{grid-template-columns:1fr;gap:8px;padding:8px}aside,article{padding:10px}
+aside h1{font-size:1.05rem}.filters{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.directory{display:none}select.mobile{display:block;margin-top:6px}#matches{margin-top:4px}.paper img{height:clamp(230px,45vh,490px)}
+header{gap:12px}.chapter{font-size:.8rem}}
+</style>
+</head>
+<body>
+<header><span class="brand"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="white" stroke-width="2" d="M1 13h4l3-8 5 15 4-10 2 3h4"/></svg>EasyAnalog</span><nav aria-label="主导航"><a href="./">仿真工作台</a><a href="atlas.html" aria-current="page">电路图册</a></nav></header>
+<main><aside><h1>电路图册</h1>
+<div class="filters"><label>章节<select id="chapter"></select></label><label>查找电路<input type="search" id="search" placeholder="名称或关键词"></label></div>
+<p id="matches" role="status">正在加载图册…</p><ul class="directory" aria-label="电路目录"></ul><select class="mobile" id="pick" aria-label="选择电路"></select>
+</aside>
+<article hidden><div class="heading"><span class="chapter" id="section"></span><div class="steps"><button id="prev" aria-label="上一张电路图">上一张</button><button id="next" aria-label="下一张电路图">下一张</button></div></div>
+<h2 id="title"></h2><p id="description"></p><div class="paper"><img id="figure" alt=""></div>
+<div class="foot"><p>同名节点相连。MN、MP 分别表示 NMOS、PMOS。</p><div class="links"><a id="simulation" hidden>打开对应仿真</a><a id="original" target="_blank" rel="noopener">打开矢量原图</a></div></div></article>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const directory=document.querySelector('.directory'), article=document.querySelector('article');
+let entries=[],visible=[],current;
+function show(entry){
+ current=entry;
+ article.hidden=!entry;
+ if(!entry)return;
+ $('title').textContent=entry.名字;
+ $('section').textContent=entry.章节+' · '+entry.标题;
+ $('description').textContent=entry.电路简单介绍;
+ document.title=entry.名字+' · EasyAnalog 图册';
+ const link='diagrams/'+entry.id+'.svg';
+ $('original').href=link;
+ $('figure').src=link;
+ $('figure').alt=entry.名字+'，'+entry.电路简单介绍;
+ $('pick').value=entry.id;
+ for(const a of directory.querySelectorAll('a')){
+  if(a.hash==='#'+entry.id)a.setAttribute('aria-current','true');
+  else a.removeAttribute('aria-current');
+ }
+ const index=visible.indexOf(entry);
+ $('prev').disabled=index<1;$('next').disabled=index===visible.length-1;
+ const sims={'电阻负载共源放大器':'common-source','电阻负载源极跟随器':'follower','一阶 RC 低通电路':'lowpass'};
+ const sim=sims[entry.名字];
+ $('simulation').hidden=!sim;
+ if(sim)$('simulation').href='./?case='+sim;
+}
+function filter(preferred){
+ const term=$('search').value.trim().toLowerCase();
+ const ch=$('chapter').value;
+ visible=entries.filter(e=>(!ch||e.章节===ch)&&(!term||(e.名字+' '+e.电路简单介绍).toLowerCase().includes(term)));
+ directory.replaceChildren();$('pick').replaceChildren();
+ for(const e of visible){
+  const a=document.createElement('a');a.href='#'+e.id;a.textContent=e.名字;
+  const li=document.createElement('li');li.append(a);directory.append(li);
+  $('pick').add(new Option(e.名字,e.id));
+ }
+ $('pick').disabled=!visible.length;
+ $('matches').textContent=visible.length?'当前 '+visible.length+' 项 · 共 '+entries.length+' 项':'没有匹配的电路';
+ show(visible.find(e=>e.id===preferred)||visible[0]);
+}
+function openHash(){
+ const e=entries.find(e=>'#'+e.id===location.hash);
+ if(e&&!visible.includes(e)){
+  $('search').value='';$('chapter').value=e.章节;filter(e.id);
+ }else if(e)show(e);
+ else filter();
+}
+function filterChange(){
+ filter(current?.id);
+ history.replaceState(null,'',current?'#'+current.id:location.pathname+location.search);
+}
+$('chapter').onchange=filterChange;$('search').oninput=filterChange;
+$('pick').onchange=()=>{location.hash=$('pick').value};
+for(const [id,step] of [['prev',-1],['next',1]])$(id).onclick=()=>{location.hash=visible[visible.indexOf(current)+step].id};
+window.addEventListener('hashchange',openHash);
+async function start(){
+ const r=await fetch('catalog.json');
+ if(!r.ok)throw Error(r.status);
+ entries=await r.json();
+ $('chapter').add(new Option('全部章节',''));
+ const chapters=new Map(entries.map(e=>[e.章节,e.标题]));
+ for(const [ch,title] of chapters)$('chapter').add(new Option(ch+' · '+title,ch));
+ const initial=entries.find(e=>'#'+e.id===location.hash)||entries[0];
+ $('chapter').value=initial.章节;filter(initial.id);
+}
+start().catch(()=>{$('matches').textContent='图册加载失败，请刷新重试。'});
+</script></body></html>
